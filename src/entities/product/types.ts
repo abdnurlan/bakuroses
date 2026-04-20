@@ -6,6 +6,7 @@ export interface Product {
   stemNote?: string;
   price: number;
   imageUrl: string;
+  galleryImages?: string[];
   category: string;
   aiPrompt?: string;
 }

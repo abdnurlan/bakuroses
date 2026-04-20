@@ -1,12 +1,14 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { CalendarDots, WhatsappLogo } from '@phosphor-icons/react';
+import { CalendarDots, ShoppingCart, WhatsappLogo } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/shared/store';
 import { EASE, DURATION } from '@/lib/animation-tokens';
+import { useLang } from '@/providers/LanguageProvider';
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, '') ?? '';
 const MONTHS_AZ = [
@@ -29,6 +31,7 @@ export function CartDrawer() {
   const itemsRef = useRef<HTMLDivElement>(null);
   const [deliveryDate, setDeliveryDate] = useState('');
   const [dateError, setDateError] = useState('');
+  const { t } = useLang();
 
   const ui = useAppStore((s) => s.ui);
   const cartItems = useAppStore((s) => s.cartItems);
@@ -61,20 +64,20 @@ export function CartDrawer() {
     );
 
     return [
-      'Salam, Baku Roses.',
+      t('cart_whatsapp_greeting'),
       '',
-      `Bu tarix üçün sifariş vermək istəyirəm: ${formattedDate}`,
+      `${t('cart_whatsapp_date')} ${formattedDate}`,
       '',
-      'Seçilən güllər:',
+      t('cart_whatsapp_items'),
       ...lines,
       '',
-      `Cəmi: ${totalAmount.toFixed(0)} ₼`,
+      `${t('cart_whatsapp_total')} ${totalAmount.toFixed(0)} ₼`,
     ].join('\n');
   }, [cartItems, deliveryDate, totalAmount]);
 
   const handleWhatsAppCheckout = () => {
     if (!deliveryDate) {
-      setDateError('Zəhmət olmasa sifariş tarixi seçin.');
+      setDateError(t('cart_date_warning'));
       return;
     }
 
@@ -178,7 +181,7 @@ export function CartDrawer() {
             className="font-display"
             style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--color-text)', lineHeight: 1 }}
           >
-            Səbətiniz
+            {t('cart_title')}
             {cartItems.length > 0 && (
               <span style={{ fontSize: '1rem', marginLeft: '0.5rem', color: 'var(--color-text-soft)' }}>
                 ({totalCount})
@@ -204,7 +207,7 @@ export function CartDrawer() {
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-accent-strong)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-muted)'; }}
           >
-            Bağla
+            {t('cart_close')}
           </button>
         </div>
 
@@ -219,7 +222,7 @@ export function CartDrawer() {
                 letterSpacing: '0.08em',
               }}
             >
-              Səbətiniz hazırda boşdur
+              {t('cart_empty')}
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
@@ -270,7 +273,7 @@ export function CartDrawer() {
                       onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-accent-strong)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-soft)'; }}
                     >
-                      Sil
+                      {t('cart_delete')}
                     </button>
                   </motion.div>
                 ))}
@@ -304,7 +307,7 @@ export function CartDrawer() {
               }}
             >
               <CalendarDots size={16} weight="duotone" style={{ color: 'var(--color-accent)' }} />
-              Sifariş tarixi
+              {t('cart_date_label')}
             </label>
 
             <input
@@ -338,16 +341,44 @@ export function CartDrawer() {
                 lineHeight: 1.6,
               }}
             >
-              {dateError || 'Tarix seçildikdən sonra sifariş siyahısı WhatsApp mesajı kimi açılacaq.'}
+              {dateError || t('cart_date_hint')}
             </p>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', alignItems: 'baseline' }}>
-            <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>Cəmi</span>
+            <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>{t('cart_total')}</span>
             <span className="font-display" style={{ fontSize: '2rem', color: 'var(--color-text)', fontWeight: 600 }}>
               {totalAmount.toFixed(0)} ₼
             </span>
           </div>
+          <Link
+            href="/order"
+            onClick={() => setUI({ isCartOpen: false })}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.6rem',
+              width: '100%',
+              padding: '0.85rem',
+              marginBottom: '0.6rem',
+              background: 'rgba(139, 151, 112, 0.12)',
+              color: 'var(--color-text)',
+              border: '1px solid rgba(139, 151, 112, 0.28)',
+              borderRadius: '12px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              textDecoration: 'none',
+              transition: 'background 0.2s',
+              boxSizing: 'border-box',
+            }}
+          >
+            <ShoppingCart size={16} weight="duotone" />
+            {t('cart_order_online')}
+          </Link>
+
           <motion.button
             whileTap={{ scale: 0.98 }}
             transition={{ duration: DURATION.instant }}
@@ -383,7 +414,7 @@ export function CartDrawer() {
             }}
           >
             <WhatsappLogo size={18} weight="fill" />
-            WhatsApp ilə sifariş et
+            {t('cart_order_whatsapp')}
           </motion.button>
         </div>
       </div>

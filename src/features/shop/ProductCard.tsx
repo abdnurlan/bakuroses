@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { Sparkle, StackPlus } from '@phosphor-icons/react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
+import { Check, ShoppingBag } from '@phosphor-icons/react';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+
+
 import { Product } from '@/entities/product/types';
 import { useAppStore } from '@/shared/store';
-import { EASE, DURATION } from '@/lib/animation-tokens';
+import { useLang } from '@/providers/LanguageProvider';
 
 interface ProductCardProps {
   product: Product;
@@ -16,11 +18,44 @@ const BLUR_PLACEHOLDER =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==';
 
 export function ProductCard({ product }: ProductCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
   const [added, setAdded] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const addToCart = useAppStore((s) => s.addToCart);
+  const { t } = useLang();
+  const cardRef = useRef<HTMLElement>(null);
 
-  const handleAddToCart = () => {
+  const numericId = product.id.match(/\d+/)?.[0] ?? '1';
+  const productNumber = numericId.padStart(2, '0').slice(-2);
+  const hoverImage = product.galleryImages?.find((img) => img !== product.imageUrl) ?? product.imageUrl;
+
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const sx = useSpring(x, { stiffness: 160, damping: 20 });
+  const sy = useSpring(y, { stiffness: 160, damping: 20 });
+  const rotateX = useTransform(sy, [-0.5, 0.5], [5, -5]);
+  const rotateY = useTransform(sx, [-0.5, 0.5], [-5, 5]);
+  const imgX = useTransform(sx, [-0.5, 0.5], ['-3%', '3%']);
+  const imgY = useTransform(sy, [-0.5, 0.5], ['-3%', '3%']);
+  const [glossPos, setGlossPos] = useState({ x: 50, y: 50 });
+
+  const onMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    const r = cardRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const nx = (e.clientX - r.left) / r.width - 0.5;
+    const ny = (e.clientY - r.top) / r.height - 0.5;
+    x.set(nx);
+    y.set(ny);
+    setGlossPos({ x: (nx + 0.5) * 100, y: (ny + 0.5) * 100 });
+  };
+
+  const onMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+    setHovered(false);
+  };
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
     addToCart(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
@@ -28,83 +63,100 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <motion.article
-      className="product-card"
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      whileHover={{
-        y: -10,
-        boxShadow: '0 30px 60px rgba(133, 93, 110, 0.16)',
-      }}
-      transition={{ duration: DURATION.fast, ease: EASE.smooth }}
+      ref={cardRef}
+      className="pc"
+      style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
+      onMouseMove={onMouseMove}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={onMouseLeave}
+      whileTap={{ scale: 0.975 }}
     >
-      <div className="product-card-media">
-        <motion.div
-          animate={{ scale: isHovered ? 1.065 : 1 }}
-          transition={{ duration: DURATION.dramatic, ease: EASE.smooth }}
-          style={{ width: '100%', height: '100%' }}
-        >
+      {/* image */}
+      <div className="pc-media">
+        <motion.div className="pc-img-wrap" style={{ x: imgX, y: imgY }}>
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
-            quality={90}
+            className="pc-img pc-img-base"
+            sizes="(max-width: 640px) 100vw, (max-width: 920px) 50vw, (max-width: 1180px) 33vw, 25vw"
             placeholder="blur"
             blurDataURL={BLUR_PLACEHOLDER}
-            style={{ objectFit: 'cover' }}
-            sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw"
           />
+          {hoverImage !== product.imageUrl && (
+            <Image
+              src={hoverImage}
+              alt=""
+              aria-hidden
+              fill
+              className="pc-img pc-img-hover"
+              sizes="(max-width: 640px) 100vw, (max-width: 920px) 50vw, (max-width: 1180px) 33vw, 25vw"
+              placeholder="blur"
+              blurDataURL={BLUR_PLACEHOLDER}
+            />
+          )}
         </motion.div>
 
-        <div className="product-card-overlay" />
+        <div className="pc-vignette" />
 
-        <div className="product-card-topline">
-          <span className="product-card-chip">{product.category}</span>
-          <span className="product-card-chip product-card-chip-muted">Studio seçimi</span>
+        <div className="pc-top">
+          <span className="pc-number">№ {productNumber}</span>
+          <motion.span
+            className="pc-price"
+            animate={hovered ? { scale: 1.05, y: -2 } : { scale: 1, y: 0 }}
+            transition={{ duration: 0.28 }}
+          >
+            {product.price.toFixed(0)} ₼
+          </motion.span>
         </div>
 
-        <AnimatePresence>
-          {product.stemNote ? (
-            <motion.div
-              key={product.stemNote}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: isHovered ? 1 : 0.78, y: isHovered ? 0 : 4 }}
-              transition={{ duration: DURATION.fast, ease: EASE.smooth }}
-              className="product-card-note"
-            >
-              <Sparkle size={14} weight="fill" />
-              <span>{product.stemNote}</span>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-      </div>
-
-      <div className="product-card-body">
-        <div className="product-card-copy">
-          <h3 className="font-display product-card-title">{product.name}</h3>
-          {product.subtitle ? <p className="product-card-subtitle">{product.subtitle}</p> : null}
-        </div>
-
-        <div className="product-card-footer">
-          <div className="product-card-pricewrap">
-            <span className="product-card-price">{product.price.toFixed(0)} ₼</span>
-            <span className="product-card-availability">Sifarişə hazır</span>
-          </div>
+        <div className="pc-bottom">
+          <motion.div
+            className="pc-name-wrap"
+            animate={hovered ? { y: 0, opacity: 1 } : { y: 16, opacity: 0 }}
+            transition={{ duration: 0.36 }}
+          >
+            <h3 className="pc-name">{product.name}</h3>
+            {product.subtitle && <p className="pc-sub">{product.subtitle}</p>}
+          </motion.div>
 
           <motion.button
-            whileTap={{ scale: 0.97 }}
-            transition={{ duration: DURATION.instant }}
-            onClick={handleAddToCart}
-            className="product-card-button"
+            className={`pc-btn ${added ? 'is-added' : ''}`}
+            animate={hovered ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+            transition={{ duration: 0.36, delay: 0.05 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={handleAdd}
+            aria-label={added ? t('product_added') : t('product_add')}
           >
-            <span className="site-nav-action-inner">
-              <span className="site-nav-action-icon">
-                <StackPlus size={15} weight="bold" />
-              </span>
-              <span>{added ? 'Əlavə olundu' : 'Səbətə əlavə et'}</span>
-            </span>
+            {added ? <Check size={14} weight="bold" /> : <ShoppingBag size={14} weight="bold" />}
+            <span>{added ? t('product_added') : t('product_add')}</span>
           </motion.button>
         </div>
       </div>
+
+      {/* footer */}
+      <div className="pc-footer">
+        <div className="pc-footer-left">
+          <span className="pc-footer-name">{product.name}</span>
+          {product.category && <span className="pc-footer-cat">{product.category}</span>}
+        </div>
+        <motion.button
+          className={`pc-footer-btn ${added ? 'is-added' : ''}`}
+          whileTap={{ scale: 0.88 }}
+          onClick={handleAdd}
+          aria-label={added ? t('product_added') : t('product_add')}
+        >
+          {added ? <Check size={14} weight="bold" /> : <ShoppingBag size={14} weight="bold" />}
+        </motion.button>
+      </div>
+
+      {/* gloss */}
+      <div
+        className="pc-gloss"
+        style={{
+          background: `radial-gradient(ellipse at ${glossPos.x}% ${glossPos.y}%, rgba(255,255,255,0.11) 0%, transparent 62%)`,
+        }}
+      />
     </motion.article>
   );
 }

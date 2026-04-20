@@ -1,154 +1,128 @@
+'use client';
+
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { HeroCanvasScrub } from '@/features/hero/HeroCanvasScrub';
-import { BotanicalBanner } from '@/features/shop/BotanicalBanner';
+import { AboutStudio } from '@/features/shop/AboutStudio';
 import { ProductGrid } from '@/features/shop/ProductGrid';
 import { AnimatedTitleReveal } from '@/shared/ui/AnimatedTitleReveal';
 import { RevealOnScroll } from '@/shared/ui/RevealOnScroll';
+import { Testimonials } from '@/features/shop/Testimonials';
+import { useLang } from '@/providers/LanguageProvider';
 
-const SIGNATURE_DETAILS = [
-  { value: 'Eyni Gün', label: 'Mərkəzi Bakı üzrə çatdırılma' },
-  { value: 'Şəxsi', label: 'Otel və yaşayış ünvanına təqdimat' },
-  { value: 'Xüsusi', label: 'Rəng palitrasına uyğun kompozisiya' },
-];
+const fadeUp = {
+  hidden: { opacity: 0, y: 22 },
+  visible: { opacity: 1, y: 0 },
+};
 
-const EDITORIAL_BLOCKS = [
-  {
-    eyebrow: 'Atelye Xidməti',
-    title: 'Hər şey çoxluqla deyil, ölçü ilə qurulur.',
-    copy: 'Buketləri siluet, boşluq və sapların hərəkəti üzərində qururuq ki, kompozisiya hər bucaqdan sakit və zərif görünsün.',
-  },
-  {
-    eyebrow: 'İmza Təqdimatı',
-    title: 'Hədiyyə hissi, buket qapıya çatmamış başlayır.',
-    copy: 'Kağız, atlas lent, qeyd kartı və vazaya uyğun təqdimat bizim üçün sonradan əlavə olunan detal deyil, məhsulun bir hissəsidir.',
-  },
-  {
-    eyebrow: 'Məkan Üçün',
-    title: 'Dəhliz, masa, suit otaq və yataq kənarı üçün düşünülür.',
-    copy: 'Hər ölçü onun yaşayacağı məkana görə seçilir; sakit jestlərdən girişdə vurğu yaradan böyük kompozisiyalara qədər.',
-  },
-];
-
-const OCCASIONS = [
-  'Özəl axşam yeməkləri və masa tərtibatı',
-  'Ad günü səhər çatdırılmaları',
-  'Otel qarşılama və concierge hədiyyələri',
-  'Üzr və təşəkkür üçün sakit buketlər',
-];
+const CTA_STATS = [
+  { value: '24/7', labelKey: 'cta_stat_delivery' },
+  { value: '2020', labelKey: 'cta_stat_since' },
+  { value: '100%', labelKey: 'cta_stat_fresh' },
+] as const;
 
 export default function HomePage() {
+  const { t } = useLang();
+
   return (
     <main>
       <HeroCanvasScrub />
 
-      <section className="section-shell section-intro">
-        <RevealOnScroll variant="fade">
-          <div className="section-heading">
-            <p className="section-kicker">Seçilmiş Özəl Anlar Üçün</p>
-            <AnimatedTitleReveal
-              as="h2"
-              className="section-title"
-              text="Hədiyyə etmək, qarşılamaq və xatırlamaq üçün daha zərif bir gül dili."
-            />
-            <p className="section-copy">
-              Hər buket qalereya dəqiqliyi ilə qurulur: seçilmiş güllər, ton içində rəng palitrası və geniş nəfəs alan kompozisiya sayəsində heç nə artıq görünmür.
-            </p>
-          </div>
-        </RevealOnScroll>
-      </section>
-
-      <RevealOnScroll variant="fade">
-        <BotanicalBanner />
-      </RevealOnScroll>
-
-      <section className="section-shell atelier-shell">
-        <div className="atelier-grid">
-          <RevealOnScroll variant="slide-up">
-            <article className="atelier-feature-card">
-              <p className="section-kicker">Evin İmzası</p>
-              <AnimatedTitleReveal
-                as="h2"
-                className="section-title atelier-title"
-                text="Kütləvi deyil, seçilərək hazırlanmış gül obyektləri."
-              />
-              <p className="section-copy atelier-copy">
-                Studiyamızın yanaşması adi floristika deyil, daha çox editorial səhnə quruluşuna yaxındır. Tonal ləçəklər, nəfəs alan boşluqlar və yumşaq siluet daha sakit bir lüks hissi yaradır.
-              </p>
-
-              <div className="signature-detail-grid">
-                {SIGNATURE_DETAILS.map((detail) => (
-                  <div key={detail.label} className="signature-detail-card">
-                    <span className="signature-detail-value">{detail.value}</span>
-                    <span className="signature-detail-label">{detail.label}</span>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </RevealOnScroll>
-
-          <div className="atelier-stack">
-            {EDITORIAL_BLOCKS.map((block, index) => (
-              <RevealOnScroll key={block.title} variant="slide-up" delay={index * 0.06}>
-                <article className="atelier-mini-card">
-                  <p className="atelier-mini-eyebrow">{block.eyebrow}</p>
-                  <AnimatedTitleReveal
-                    as="h3"
-                    className="atelier-mini-title"
-                    delay={index * 0.04}
-                    text={block.title}
-                  />
-                  <p className="atelier-mini-copy">{block.copy}</p>
-                </article>
-              </RevealOnScroll>
-            ))}
-          </div>
-        </div>
-      </section>
+      <AboutStudio />
 
       <section id="collection" className="section-shell collection-shell">
         <RevealOnScroll variant="fade" style={{ marginBottom: '4rem' }}>
           <div className="section-heading">
-            <p className="section-kicker">Kolleksiya</p>
-            <AnimatedTitleReveal
-              as="h2"
-              className="section-title"
-              text="Boutique yaxınlığı ilə qurulan editorial buketlər."
-            />
-            <p className="section-copy">
-              Müasir mənzillər, otel suitləri, şam süfrələri və Bakı üzrə düşünülmüş çatdırılmalar üçün hazırlanıb.
-            </p>
+            <p className="section-kicker">{t('collection_kicker')}</p>
+            <AnimatedTitleReveal as="h2" className="section-title" text={t('collection_title')} />
+            <p className="section-copy">{t('collection_copy')}</p>
           </div>
         </RevealOnScroll>
-
         <ProductGrid />
       </section>
 
-      <section className="section-shell occasions-shell">
-        <RevealOnScroll variant="fade">
-          <div className="occasions-panel">
-            <div className="occasions-copy">
-              <p className="section-kicker">Nə Zaman Göndərməli</p>
-              <AnimatedTitleReveal
-                as="h2"
-                className="section-title occasions-title"
-                text="Adi buketdən daha çoxunu haqq edən anlar üçün hazırlanıb."
-              />
-            </div>
+      <Testimonials />
 
-            <div className="occasion-list">
-              {OCCASIONS.map((occasion) => (
-                <div key={occasion} className="occasion-pill">
-                  {occasion}
+      {/* ── Final CTA ── */}
+      <section className="final-cta-shell">
+        <div className="final-cta-inner">
+          <motion.div
+            className="final-cta-glow"
+            animate={{ scale: [1, 1.12, 1], opacity: [0.55, 0.75, 0.55] }}
+            transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+            aria-hidden="true"
+          />
+
+          <motion.div
+            className="final-cta-content"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-10% 0px' }}
+            transition={{ staggerChildren: 0.1, delayChildren: 0.05 }}
+          >
+            <motion.p className="final-cta-kicker" variants={fadeUp}>
+              {t('cta_kicker')}
+            </motion.p>
+
+            <motion.h2 className="final-cta-title" variants={fadeUp}>
+              {t('cta_title').split('\n').map((line, i) => (
+                <span key={i} style={{ display: 'block' }}>{line}</span>
+              ))}
+            </motion.h2>
+
+            <motion.p className="final-cta-copy" variants={fadeUp}>
+              {t('cta_copy')}
+            </motion.p>
+
+            <motion.div className="final-cta-actions" variants={fadeUp}>
+              <Link href="/shop" className="final-cta-btn-primary">
+                {t('cta_btn_collection')}
+              </Link>
+              <a
+                href="https://wa.me/994XXXXXXXXX"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="final-cta-btn-ghost"
+              >
+                {t('cta_btn_whatsapp')}
+              </a>
+            </motion.div>
+
+            <motion.div className="final-cta-stats" variants={fadeUp}>
+              {CTA_STATS.map(({ value, labelKey }) => (
+                <div key={labelKey} className="final-cta-stat">
+                  <span className="final-cta-stat-value">{value}</span>
+                  <span className="final-cta-stat-label">{t(labelKey)}</span>
                 </div>
               ))}
-            </div>
-          </div>
-        </RevealOnScroll>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="final-cta-petal final-cta-petal-1"
+            animate={{ rotate: [0, 8, -4, 0], y: [0, -10, 5, 0] }}
+            transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+            aria-hidden="true"
+          />
+          <motion.div
+            className="final-cta-petal final-cta-petal-2"
+            animate={{ rotate: [0, -6, 10, 0], y: [0, 12, -6, 0] }}
+            transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
+            aria-hidden="true"
+          />
+          <motion.div
+            className="final-cta-petal final-cta-petal-3"
+            animate={{ rotate: [0, 12, -8, 0], y: [0, -8, 12, 0] }}
+            transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 3 }}
+            aria-hidden="true"
+          />
+        </div>
       </section>
 
       <footer className="site-footer">
         <span className="site-footer-mark">Baku Roses</span>
         <span className="site-footer-copy">
-          © {new Date().getFullYear()} · Bütün hüquqlar qorunur
+          © {new Date().getFullYear()} · {t('footer_rights')}
         </span>
       </footer>
     </main>

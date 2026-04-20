@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id         String      @id @default(cuid())
+  slug       String      @unique
+  name       String
+  subtitle   String?
+  stemNote   String?
+  price      Float
+  imageUrl   String
+  category   String
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  orderItems OrderItem[]
+}
+
+model Zone {
+  id          String   @id @default(cuid())
+  name        String
+  centerLat   Float
+  centerLng   Float
+  radiusKm    Float
+  deliveryFee Float    @default(0)
+  color       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  orders      Order[]
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  code           String      @unique
+  customerName   String
+  customerPhone  String
+  address        String
+  lat            Float
+  lng            Float
+  note           String?
+  total          Float
+  paymentType    String
+  status         OrderStatus @default(PENDING_PAYMENT)
+  zoneId         String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  discountAmount Float       @default(0)
+  promoCodeId    String?
+  deliveryFee    Float       @default(0)
+  delivery       Delivery?
+  promoCode      PromoCode?  @relation(fields: [promoCodeId], references: [id])
+  zone           Zone        @relation(fields: [zoneId], references: [id])
+  items          OrderItem[]
+  payment        Payment?
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  orderId       String        @unique
+  amount        Float
+  currency      String        @default("AZN")
+  status        PaymentStatus @default(PENDING)
+  transactionId String?
+  createdAt     DateTime      @default(now())
+  order         Order         @relation(fields: [orderId], references: [id])
+}
+
+model Delivery {
+  id         String @id @default(cuid())
+  orderId    String @unique
+  currentLat Float?
+  currentLng Float?
+  heading    Float?
+  order      Order  @relation(fields: [orderId], references: [id])
+}
+
+model PromoCode {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  discountType   String
+  discountValue  Float
+  minOrderAmount Float?
+  maxUses        Int?
+  usedCount      Int       @default(0)
+  isActive       Boolean   @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  orders         Order[]
+}
+
+model DeliveryTier {
+  id        String   @id
+  minKm     Float
+  maxKm     Float
+  fee       Float
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  PREPARING
+  ON_THE_WAY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}

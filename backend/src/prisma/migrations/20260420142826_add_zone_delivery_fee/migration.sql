@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Zone" ADD COLUMN     "deliveryFee" DOUBLE PRECISION NOT NULL DEFAULT 0;

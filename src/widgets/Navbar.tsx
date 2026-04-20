@@ -1,212 +1,209 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { FlowerTulip, List, X } from '@phosphor-icons/react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { FlowerTulip, ShoppingCart, List, X } from '@phosphor-icons/react';
+import { AnimatePresence, motion, type Transition } from 'framer-motion';
 import { CartButton } from '@/features/cart/CartButton';
-import { EASE, DURATION } from '@/lib/animation-tokens';
 import { getLenis } from '@/shared/lib/lenis';
-import { cn } from '@/shared/lib/cn';
+import { useHeaderCondensed } from '@/hooks/useHeaderCondensed';
+import { useLang } from '@/providers/LanguageProvider';
+import { type Locale } from '@/lib/i18n';
 
-const NAV_LINKS = [
-  { label: 'Kolleksiya', href: '/#collection', icon: <FlowerTulip size={16} weight="duotone" /> },
+const spring: Transition = { type: 'spring', stiffness: 90, damping: 18 };
+
+const LOCALES: { code: Locale; label: string; name: string }[] = [
+  { code: 'az', label: 'AZ', name: 'Azərbaycan' },
+  { code: 'en', label: 'EN', name: 'English' },
+  { code: 'ru', label: 'RU', name: 'Русский' },
 ];
 
-function NavLink({
-  label,
-  href,
-  icon,
-  onNavigate,
-  className,
-}: {
+function NavLink({ label, href, icon, onNavigate, mobile }: {
   label: string;
   href: string;
   icon?: ReactNode;
   onNavigate?: () => void;
-  className?: string;
+  mobile?: boolean;
 }) {
-  const [hovered, setHovered] = useState(false);
   const pathname = usePathname();
 
-  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (pathname !== '/' || !href.includes('#')) {
-      return;
-    }
-
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (pathname !== '/' || !href.includes('#')) return;
     const hash = href.split('#')[1];
-    if (!hash) {
-      return;
-    }
-
+    if (!hash) return;
     const target = document.getElementById(hash);
-    if (!target) {
-      return;
-    }
-
-    event.preventDefault();
-
-    getLenis().scrollTo(target, {
-      offset: -24,
-      duration: 1.35,
-      easing: (t: number) => 1 - Math.pow(1 - t, 4),
-    });
-
+    if (!target) return;
+    e.preventDefault();
+    getLenis().scrollTo(target, { offset: -24, duration: 1.35, easing: (t: number) => 1 - Math.pow(1 - t, 4) });
     onNavigate?.();
   };
 
   return (
-    <Link
-      href={href}
-      className={cn('site-nav-action', className)}
-      style={{
-        position: 'relative',
-        fontSize: '0.72rem',
-        fontWeight: 600,
-        color: 'var(--color-text)',
-        textDecoration: 'none',
-        letterSpacing: '0.28em',
-        textTransform: 'uppercase',
-        transition: 'color 0.2s ease',
-      }}
-      onClick={handleClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <span className="site-nav-action-inner">
-        {icon ? <span className="site-nav-action-icon">{icon}</span> : null}
-        <span>{label}</span>
-      </span>
-      {/* Underline reveal */}
-      <motion.span
-        initial={{ scaleX: 0 }}
-        animate={{ scaleX: hovered ? 1 : 0 }}
-        transition={{
-          duration: DURATION.fast,
-          ease: EASE.smooth,
-        }}
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '1px',
-          backgroundColor: 'var(--color-accent)',
-          transformOrigin: hovered ? 'left center' : 'right center',
-          display: 'block',
-        }}
-      />
+    <Link href={href} className={mobile ? 'bk-nav__mobile-link' : 'bk-nav__link'} onClick={handleClick}>
+      {icon && <span className="bk-nav__link-icon">{icon}</span>}
+      {label}
     </Link>
   );
 }
 
 export function Navbar() {
+  const isCondensed = useHeaderCondensed(30, 20);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { locale, setLocale, t } = useLang();
+
+  const navLinks = [
+    { label: t('nav_collection'), href: '/#collection', icon: <FlowerTulip size={15} weight="duotone" /> },
+    { label: t('nav_order'), href: '/order', icon: <ShoppingCart size={15} weight="duotone" /> },
+  ];
 
   return (
-    <nav className="site-nav-wrap">
-      <motion.div
-        initial={{ opacity: 0, y: -18 }}
-        animate={{
-          opacity: 1,
-          y: 0,
-          backgroundColor: 'rgba(252, 247, 244, 0.76)',
-          backdropFilter: 'blur(24px)',
-          borderColor: 'rgba(205, 118, 151, 0.18)',
-          boxShadow: '0 16px 36px rgba(138, 113, 120, 0.16)',
-        }}
-        transition={{ duration: DURATION.fast, ease: EASE.smooth }}
-        className="site-nav-shell"
-      >
-        <Link
-          href="/"
-          className="font-display site-nav-brand"
-          style={{
-            textDecoration: 'none',
-            color: 'var(--color-text)',
+    <motion.div
+      className="bk-navbar-wrap"
+      animate={{ paddingTop: isCondensed ? 12 : 20 }}
+      initial={false}
+      transition={spring}
+    >
+      <div className="bk-navbar-container">
+        <motion.nav
+          layout
+          className={`bk-navbar${isCondensed ? ' is-condensed' : ''}`}
+          animate={{
+            backgroundColor: 'rgba(255, 252, 253, 0.42)',
+            backdropFilter: 'blur(18px)',
+            borderColor: 'rgba(255, 255, 255, 0.52)',
+            paddingTop: isCondensed ? 8 : 14,
+            paddingBottom: isCondensed ? 8 : 14,
+            paddingLeft: isCondensed ? 16 : 20,
+            paddingRight: isCondensed ? 16 : 20,
+            maxWidth: isCondensed ? 860 : 1280,
           }}
-          onClick={() => setMobileOpen(false)}
+          initial={false}
+          transition={spring}
         >
-          <Image
-            src="/logo.avif"
-            alt="Baku Roses"
-            width={54}
-            height={54}
-            priority
-            className="site-nav-logo"
-          />
-        </Link>
+          {/* LEFT — brand */}
+          <motion.div layout transition={spring} className="bk-navbar__brand-col">
+            <Link href="/" className="bk-navbar__brand" onClick={() => setMobileOpen(false)}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.avif" alt="Baku Roses" width={46} height={46} className="bk-navbar__logo" />
+            </Link>
+          </motion.div>
 
-        <div className="site-nav-links site-nav-links-desktop">
-          {NAV_LINKS.map((l) => (
-            <NavLink key={l.href} label={l.label} href={l.href} icon={l.icon} />
-          ))}
-          <CartButton className="site-nav-action-fixed site-nav-action-chip" />
-        </div>
+          {/* CENTER — links */}
+          <motion.div layout transition={spring} className="bk-navbar__links-col">
+            {navLinks.map((l) => (
+              <NavLink key={l.href} label={l.label} href={l.href} icon={l.icon} />
+            ))}
+          </motion.div>
 
-        <div className="site-nav-mobile-actions">
-          <button
-            type="button"
-            className="site-nav-toggle"
-            aria-expanded={mobileOpen}
-            aria-label={mobileOpen ? 'Menyunu bağla' : 'Menyunu aç'}
-            onClick={() => setMobileOpen((value) => !value)}
-          >
-            {mobileOpen ? <X size={18} weight="bold" /> : <List size={18} weight="bold" />}
-          </button>
-        </div>
-      </motion.div>
+          {/* RIGHT — lang + cta + burger */}
+          <motion.div layout transition={spring} className="bk-navbar__actions-col">
 
-      <AnimatePresence>
-        {mobileOpen && (
-          <>
-            <motion.button
+            {/* Language switcher */}
+            <div ref={langRef} className="bk-lang">
+              <button
+                type="button"
+                className="bk-lang__trigger"
+                onClick={() => setLangOpen((v) => !v)}
+                aria-expanded={langOpen}
+              >
+                <span className="bk-lang__code">{locale.toUpperCase()}</span>
+                <motion.span
+                  animate={{ rotate: langOpen ? 180 : 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="bk-lang__chevron"
+                >
+                  ▾
+                </motion.span>
+              </button>
+
+              <AnimatePresence>
+                {langOpen && (
+                  <motion.div
+                    className="bk-lang__menu"
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    {LOCALES.map((item) => (
+                      <button
+                        key={item.code}
+                        type="button"
+                        className={`bk-lang__option${item.code === locale ? ' is-active' : ''}`}
+                        onClick={() => { setLocale(item.code); setLangOpen(false); }}
+                      >
+                        <span className="bk-lang__option-code">{item.label}</span>
+                        <span className="bk-lang__option-name">{item.name}</span>
+                        <span className="bk-lang__option-check">✓</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <CartButton className="bk-navbar__cta" />
+
+            <button
               type="button"
-              aria-label="Menyunu bağla"
-              className="site-nav-mobile-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: DURATION.fast }}
-              onClick={() => setMobileOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -14, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -14, scale: 0.98 }}
-              transition={{ duration: DURATION.fast, ease: EASE.smooth }}
-              className="site-nav-mobile-panel"
+              className="bk-navbar__burger"
+              aria-expanded={mobileOpen}
+              aria-label={mobileOpen ? t('nav_close') : t('nav_open')}
+              onClick={() => setMobileOpen((v) => !v)}
             >
-              <div className="site-nav-mobile-heading">
-                <span className="site-nav-mobile-label">Naviqasiya</span>
-                <span className="site-nav-mobile-caption">Seçilmiş keçidlər</span>
-              </div>
+              <AnimatePresence mode="wait" initial={false}>
+                {mobileOpen ? (
+                  <motion.span key="x" initial={{ rotate: -45, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 45, opacity: 0 }} transition={{ duration: 0.16 }}>
+                    <X size={18} weight="bold" />
+                  </motion.span>
+                ) : (
+                  <motion.span key="m" initial={{ rotate: 45, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -45, opacity: 0 }} transition={{ duration: 0.16 }}>
+                    <List size={18} weight="bold" />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+          </motion.div>
+        </motion.nav>
 
-              <div className="site-nav-mobile-links">
-                {NAV_LINKS.map((link) => (
-                  <NavLink
-                    key={link.href}
-                    label={link.label}
-                    href={link.href}
-                    icon={link.icon}
-                    onNavigate={() => setMobileOpen(false)}
-                    className="site-nav-mobile-link"
-                  />
+        {/* Mobile dropdown */}
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              ref={dropdownRef}
+              className="bk-navbar__mobile"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {navLinks.map((l) => (
+                <NavLink key={l.href} label={l.label} href={l.href} icon={l.icon} mobile onNavigate={() => setMobileOpen(false)} />
+              ))}
+              <div className="bk-navbar__mobile-divider" />
+              {/* Mobile lang */}
+              <div className="bk-navbar__mobile-langs">
+                {LOCALES.map((item) => (
+                  <button
+                    key={item.code}
+                    type="button"
+                    className={`bk-navbar__mobile-lang-btn${item.code === locale ? ' is-active' : ''}`}
+                    onClick={() => { setLocale(item.code); setMobileOpen(false); }}
+                  >
+                    {item.label}
+                  </button>
                 ))}
               </div>
-
-              <div className="site-nav-mobile-footer">
-                <CartButton
-                  className="site-nav-mobile-cart"
-                  onClick={() => setMobileOpen(false)}
-                />
-              </div>
+              <div className="bk-navbar__mobile-divider" />
+              <CartButton className="bk-navbar__mobile-cta" onClick={() => setMobileOpen(false)} />
             </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </nav>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
   );
 }

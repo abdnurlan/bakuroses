@@ -1,6 +1,34 @@
 import { Product } from '@/entities/product/types';
 
-export const SEED_PRODUCTS: Product[] = [
+const FLOWER_GALLERY_POOL = [
+  '/images/products/ivory-hydrangea.png',
+  '/images/products/ranunculus-candlelight.png',
+  '/images/products/morning-rose-box.png',
+  '/images/products/pastel-tulip-cloud.png',
+  '/images/products/olive-white-bouquet.png',
+  '/images/products/dinner-mini.png',
+  '/images/products/peony-bouquet.png',
+  '/images/products/rose-crown.png',
+  '/images/products/mint-wildflower.png',
+  '/images/products/dried-pampas.png',
+  '/images/studio/gallery-1.png',
+  '/images/studio/gallery-2.png',
+  '/images/studio/gallery-3.png',
+  '/images/studio/gallery-4.png',
+];
+
+function withGalleryImages(products: Product[]): Product[] {
+  return products.map((product, index) => ({
+    ...product,
+    galleryImages: [
+      product.imageUrl,
+      FLOWER_GALLERY_POOL[(index + 1) % FLOWER_GALLERY_POOL.length],
+      FLOWER_GALLERY_POOL[(index + 2) % FLOWER_GALLERY_POOL.length],
+    ],
+  }));
+}
+
+export const SEED_PRODUCTS: Product[] = withGalleryImages([
   {
     id: '5',
     slug: 'ivory-hydrangea',
@@ -8,7 +36,7 @@ export const SEED_PRODUCTS: Product[] = [
     subtitle: 'Ortanca, lisianthus və açıq zeytun yarpaqları',
     stemNote: 'Masa üstü və giriş konsolu üçün ideal',
     price: 74,
-    imageUrl: 'https://images.unsplash.com/photo-1468327768560-75b778cbb551?w=900&q=80',
+    imageUrl: '/images/products/ivory-hydrangea.png',
     category: 'Kompozisiya',
   },
   {
@@ -18,7 +46,7 @@ export const SEED_PRODUCTS: Product[] = [
     subtitle: 'Şaftalı və pudra tonlarında sıx ranunkulus qatları',
     stemNote: 'Axşam süfrələri üçün yumşaq parlaqlıq',
     price: 59,
-    imageUrl: 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?w=900&q=80',
+    imageUrl: '/images/products/ranunculus-candlelight.png',
     category: 'Buket',
   },
   {
@@ -28,7 +56,7 @@ export const SEED_PRODUCTS: Product[] = [
     subtitle: 'Qutu içində yığılmış bağ gülləri və qaymaq lent detalı',
     stemNote: 'Otel qarşılama və hədiyyə təqdimatı üçün',
     price: 82,
-    imageUrl: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=900&q=80',
+    imageUrl: '/images/products/morning-rose-box.png',
     category: 'Qutu',
   },
   {
@@ -38,7 +66,7 @@ export const SEED_PRODUCTS: Product[] = [
     subtitle: 'Lalə, freziya və ipək kimi açılan yaz tonları',
     stemNote: 'Səhər çatdırılması üçün ən çox seçilənlərdən',
     price: 42,
-    imageUrl: 'https://images.unsplash.com/photo-1526397751294-331021109fbd?w=900&q=80',
+    imageUrl: '/images/products/pastel-tulip-cloud.png',
     category: 'Yaz',
   },
   {
@@ -48,7 +76,7 @@ export const SEED_PRODUCTS: Product[] = [
     subtitle: 'Ağ qızılgül, anturium və zeytun yarpaqlı təmiz siluet',
     stemNote: 'Minimal interyerlər üçün sakit seçim',
     price: 77,
-    imageUrl: 'https://images.unsplash.com/photo-1519378058457-4c29a0a2efac?w=900&q=80',
+    imageUrl: '/images/products/olive-white-bouquet.png',
     category: 'Ağ Ton',
   },
   {
@@ -58,7 +86,7 @@ export const SEED_PRODUCTS: Product[] = [
     subtitle: 'Aşağı boylu masa kompozisiyası və şam işığına uyğun forma',
     stemNote: 'Özəl axşam yeməkləri üçün hazırlanır',
     price: 33,
-    imageUrl: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=900&q=80',
+    imageUrl: '/images/products/dinner-mini.png',
     category: 'Masa',
   },
   {
@@ -68,7 +96,7 @@ export const SEED_PRODUCTS: Product[] = [
     subtitle: 'Toz çəhrayı pionlar, krem tonlu qatlar və atlas lent',
     stemNote: 'Mərkəzi Bakı üzrə eyni gün təqdimat',
     price: 68,
-    imageUrl: 'https://images.unsplash.com/photo-1548094990-c16ca90f1f0d?w=900&q=80',
+    imageUrl: '/images/products/peony-bouquet.png',
     category: 'Buket',
   },
   {
@@ -78,7 +106,7 @@ export const SEED_PRODUCTS: Product[] = [
     subtitle: 'Yüngül qızılgül, gipsofila və yumşaq yaşıl vurğular',
     stemNote: 'Foto çəkiliş və nişan səhərləri üçün',
     price: 45,
-    imageUrl: 'https://images.unsplash.com/photo-1508610048659-a06b669e3321?w=900&q=80',
+    imageUrl: '/images/products/rose-crown.png',
     category: 'Tac',
   },
   {
@@ -88,7 +116,7 @@ export const SEED_PRODUCTS: Product[] = [
     subtitle: 'Vəhşi çiçəklər, nanə tonu və sərbəst bağlanmış forma',
     stemNote: 'Sakit təşəkkür jesti üçün seçilir',
     price: 38,
-    imageUrl: 'https://images.unsplash.com/photo-1444930694458-01babf71870c?w=900&q=80',
+    imageUrl: '/images/products/mint-wildflower.png',
     category: 'Dəstə',
   },
   {
@@ -98,7 +126,7 @@ export const SEED_PRODUCTS: Product[] = [
     subtitle: 'Uzunömürlü pampas, qurudulmuş qızılgül və lunaria',
     stemNote: 'Məkan üçün qalıcı kompozisiya',
     price: 55,
-    imageUrl: 'https://images.unsplash.com/photo-1487530811015-780be3279e8f?w=900&q=80',
+    imageUrl: '/images/products/dried-pampas.png',
     category: 'Quru',
   },
-];
+]);

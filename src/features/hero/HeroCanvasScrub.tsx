@@ -9,6 +9,7 @@ import {
   HERO_FRAME_COUNT,
   HERO_FRAME_PRELOAD_COUNT,
 } from './heroFrameConfig';
+import { useLang } from '@/providers/LanguageProvider';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -26,6 +27,7 @@ export function HeroCanvasScrub() {
 
   const [isSequenceReady, setIsSequenceReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
+  const { t } = useLang();
 
   const drawFrame = useCallback((frameIndex: number) => {
     const canvas = canvasRef.current;
@@ -221,20 +223,20 @@ export function HeroCanvasScrub() {
       <div className="hero-video-overlay" />
 
       <div className="hero-video-copy">
-        <p className="hero-video-kicker">Baku Roses Gül Evi</p>
+        <p className="hero-video-kicker">{t('hero_kicker')}</p>
         <h1 className="hero-video-title">
-          Zövqlə qurulan güllər,
+          {t('hero_title').split('\n')[0]}
           <br />
-          kadr kimi təqdim olunur.
+          {t('hero_title').split('\n')[1]}
         </h1>
         <p className="hero-video-subtitle">
-          Sakit jestlər, möhtəşəm qarşılamalar və gözəlliyi haqq edən məkanlar üçün əl ilə yığılmış buketlər.
+          {t('hero_subtitle')}
         </p>
       </div>
 
       {!isSequenceReady && (
         <div className="hero-sequence-status">
-          Kadrlar hazırlanır {loadProgress}%
+          {t('hero_loading')} {loadProgress}%
         </div>
       )}
     </section>

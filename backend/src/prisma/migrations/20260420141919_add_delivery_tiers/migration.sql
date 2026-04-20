@@ -1,0 +1,15 @@
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN     "deliveryFee" DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+-- CreateTable
+CREATE TABLE "DeliveryTier" (
+    "id" TEXT NOT NULL,
+    "minKm" DOUBLE PRECISION NOT NULL,
+    "maxKm" DOUBLE PRECISION NOT NULL,
+    "fee" DOUBLE PRECISION NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "DeliveryTier_pkey" PRIMARY KEY ("id")
+);

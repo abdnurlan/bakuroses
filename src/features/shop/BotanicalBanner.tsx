@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Image from 'next/image';
 import { EASE, DURATION } from '@/lib/animation-tokens';
+import { useLang } from '@/providers/LanguageProvider';
 
 // Static — no API calls
 const BANNER_IMAGE = 'https://images.unsplash.com/photo-1490750967868-88df5691cc1a?w=1600&q=85';
@@ -12,6 +13,7 @@ export function BotanicalBanner() {
   const sectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
   const imageY = useTransform(scrollYProgress, [0, 1], ['0%', '-8%']);
+  const { t } = useLang();
 
   return (
     <section
@@ -67,21 +69,21 @@ export function BotanicalBanner() {
           <p
             className="botanical-banner-pill"
           >
-            Premium Botanika Kolleksiyası
+            {t('banner_kicker')}
           </p>
 
           <h2
             className="font-display botanical-banner-title"
           >
-            Məkan üçün seçilən,
+            {t('banner_title').split('\n')[0]}
             <br />
-            sakit və bahalı güllər.
+            {t('banner_title').split('\n')[1]}
           </h2>
 
           <p
             className="botanical-banner-text"
           >
-            Otel suitləri, şam masaları və zərif ev interyerləri üçün nəzərdə tutulmuş tonal kompozisiyalar. Hər detal görüntü deyil, atmosfer yaradır.
+            {t('banner_copy')}
           </p>
         </div>
 
@@ -89,14 +91,14 @@ export function BotanicalBanner() {
           <p
             className="botanical-banner-note-kicker"
           >
-            Bu Mövsüm
+            {t('banner_season')}
           </p>
           <p
             className="font-display botanical-banner-note-title"
           >
-            Gül, pion,
+            {t('banner_flowers').split('\n')[0]}
             <br />
-            bağ teksturası
+            {t('banner_flowers').split('\n')[1]}
           </p>
         </div>
       </motion.div>

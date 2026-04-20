@@ -1,11 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { ProductCard } from './ProductCard';
 import { SEED_PRODUCTS } from './products.data';
 import { DURATION, EASE } from '@/lib/animation-tokens';
+import { fetchProducts } from '@/api/products';
+import { useLang } from '@/providers/LanguageProvider';
 
 function getCardsPerView(width: number) {
   if (width <= 640) {
@@ -23,9 +27,33 @@ function getCardsPerView(width: number) {
   return 4;
 }
 
+const sliderPageVariants = {
+  enter: (direction: number) => ({
+    opacity: 0,
+    x: direction > 0 ? 36 : -36,
+  }),
+  center: {
+    opacity: 1,
+    x: 0,
+  },
+  exit: (direction: number) => ({
+    opacity: 0,
+    x: direction > 0 ? -36 : 36,
+  }),
+};
+
 export function ProductGrid() {
   const [cardsPerView, setCardsPerView] = useState(4);
   const [currentPage, setCurrentPage] = useState(0);
+  const [slideDirection, setSlideDirection] = useState(1);
+  const { t } = useLang();
+
+  const { data: apiProducts } = useQuery({
+    queryKey: ['products'],
+    queryFn: fetchProducts,
+  });
+
+  const products = apiProducts ?? SEED_PRODUCTS;
 
   useEffect(() => {
     const syncCardsPerView = () => {
@@ -43,37 +71,76 @@ export function ProductGrid() {
   const pages = useMemo(() => {
     const result = [];
 
-    for (let index = 0; index < SEED_PRODUCTS.length; index += cardsPerView) {
-      result.push(SEED_PRODUCTS.slice(index, index + cardsPerView));
+    for (let index = 0; index < products.length; index += cardsPerView) {
+      result.push(products.slice(index, index + cardsPerView));
     }
 
     return result;
-  }, [cardsPerView]);
+  }, [cardsPerView, products]);
 
   const safeCurrentPage = Math.min(currentPage, Math.max(pages.length - 1, 0));
   const activePage = pages[safeCurrentPage] ?? [];
+  const maxPage = Math.max(pages.length - 1, 0);
+
+  const goToPage = (page: number) => {
+    const nextPage = Math.min(Math.max(page, 0), maxPage);
+
+    if (nextPage === safeCurrentPage) {
+      return;
+    }
+
+    setSlideDirection(nextPage > safeCurrentPage ? 1 : -1);
+    setCurrentPage(nextPage);
+  };
+
+  const goToPreviousPage = () => {
+    goToPage(safeCurrentPage - 1);
+  };
+
+  const goToNextPage = () => {
+    goToPage(safeCurrentPage + 1);
+  };
+
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const swipeDistance = 56;
+    const swipeVelocity = 420;
+
+    if (info.offset.x <= -swipeDistance || info.velocity.x <= -swipeVelocity) {
+      goToNextPage();
+      return;
+    }
+
+    if (info.offset.x >= swipeDistance || info.velocity.x >= swipeVelocity) {
+      goToPreviousPage();
+    }
+  };
 
   return (
     <div className="product-slider-shell">
       <div className="product-slider-toolbar">
-        <p className="product-slider-caption">Seçilmiş 10 buket və kompozisiya</p>
+        <div className="product-slider-head">
+          <p className="product-slider-caption">{t('product_count')}</p>
+          <Link href="/shop" className="product-slider-see-all">
+            {t('product_see_all')}
+          </Link>
+        </div>
 
         <div className="product-slider-controls">
           <button
             type="button"
             className="product-slider-control"
-            onClick={() => setCurrentPage((page) => Math.max(page - 1, 0))}
+            onClick={goToPreviousPage}
             disabled={safeCurrentPage === 0}
-            aria-label="Əvvəlki məhsullar"
+            aria-label={t('product_prev')}
           >
             <CaretLeft size={18} weight="bold" />
           </button>
           <button
             type="button"
             className="product-slider-control"
-            onClick={() => setCurrentPage((page) => Math.min(page + 1, pages.length - 1))}
+            onClick={goToNextPage}
             disabled={safeCurrentPage >= pages.length - 1}
-            aria-label="Növbəti məhsullar"
+            aria-label={t('product_next')}
           >
             <CaretRight size={18} weight="bold" />
           </button>
@@ -81,17 +148,24 @@ export function ProductGrid() {
       </div>
 
       <div className="product-slider-viewport">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" custom={slideDirection}>
           <motion.div
             key={`${cardsPerView}-${safeCurrentPage}`}
             className="product-slider-page"
             style={{
-              gridTemplateColumns: `repeat(${activePage.length}, minmax(0, 1fr))`,
+              gridTemplateColumns: `repeat(${cardsPerView}, minmax(0, 1fr))`,
             }}
-            initial={{ opacity: 0, x: 28 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -28 }}
+            custom={slideDirection}
+            variants={sliderPageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
             transition={{ duration: DURATION.fast, ease: EASE.smooth }}
+            drag={pages.length > 1 ? 'x' : false}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.08}
+            dragMomentum={false}
+            onDragEnd={handleDragEnd}
           >
             {activePage.map((product) => (
               <div key={product.id} className="product-slider-slide">
@@ -102,14 +176,14 @@ export function ProductGrid() {
         </AnimatePresence>
       </div>
 
-      <div className="product-slider-pagination" aria-label="Kolleksiya səhifələri">
+      <div className="product-slider-pagination" aria-label={t('product_pagination')}>
         {pages.map((_, index) => (
           <button
             key={index}
             type="button"
             className={`product-slider-dot${index === safeCurrentPage ? ' is-active' : ''}`}
-            onClick={() => setCurrentPage(index)}
-            aria-label={`Səhifə ${index + 1}`}
+            onClick={() => goToPage(index)}
+            aria-label={`${t('product_page')} ${index + 1}`}
           />
         ))}
       </div>
