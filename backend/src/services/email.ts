@@ -20,7 +20,14 @@ export async function sendEmail(
   template: string,
   vars: object
 ) {
-  const templatePath = path.join(__dirname, `../templates/${template}.hbs`);
+  const candidates = [
+    path.join(__dirname, `../templates/${template}.hbs`),
+    path.join(process.cwd(), `src/templates/${template}.hbs`),
+  ];
+  const templatePath = candidates.find(p => fs.existsSync(p));
+  if (!templatePath) {
+    throw new Error(`Email template not found: ${template}`);
+  }
   const src = fs.readFileSync(templatePath, 'utf8');
   const html = handlebars.compile(src)(vars);
 

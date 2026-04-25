@@ -12,6 +12,7 @@ type AnimatedTitleRevealProps<T extends ElementType> = {
   as?: T;
   className?: string;
   delay?: number;
+  id?: string;
   text: string;
 };
 
@@ -19,6 +20,7 @@ export function AnimatedTitleReveal<T extends ElementType = 'h2'>({
   as,
   className,
   delay = 0,
+  id,
   text,
 }: AnimatedTitleRevealProps<T>) {
   const Component = (as ?? 'h2') as ElementType;
@@ -63,7 +65,7 @@ export function AnimatedTitleReveal<T extends ElementType = 'h2'>({
   );
 
   return (
-    <Component ref={ref} className={className} aria-label={text}>
+    <Component ref={ref} id={id} className={className} aria-label={text}>
       <span aria-hidden="true">
         {Array.from(text).map((char, index) => (
           <span

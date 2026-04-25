@@ -8,19 +8,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Category {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  description String?
+  imageUrl    String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+}
+
 model Product {
-  id         String      @id @default(cuid())
-  slug       String      @unique
-  name       String
-  subtitle   String?
-  stemNote   String?
-  price      Float
-  imageUrl   String
-  category   String
-  isActive   Boolean     @default(true)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  orderItems OrderItem[]
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  name         String
+  subtitle     String?
+  stemNote     String?
+  price        Float
+  imageUrl     String
+  category     String
+  categorySlug String?
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  orderItems   OrderItem[]
+  categoryRel  Category?   @relation(fields: [categorySlug], references: [slug])
 }
 
 model Zone {

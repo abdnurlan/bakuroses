@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { type Locale, type TranslationKey, translations } from '@/lib/i18n';
 
 const STORAGE_KEY = 'br_lang';
@@ -14,14 +14,15 @@ interface LanguageContextValue {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('az');
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
-    if (stored && (stored === 'az' || stored === 'en' || stored === 'ru')) {
-      setLocaleState(stored);
+  const [locale, setLocaleState] = useState<Locale>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
+      if (stored && (stored === 'az' || stored === 'en' || stored === 'ru')) {
+        return stored;
+      }
     }
-  }, []);
+    return 'az';
+  });
 
   const setLocale = (l: Locale) => {
     localStorage.setItem(STORAGE_KEY, l);

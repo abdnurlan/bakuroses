@@ -16,6 +16,23 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Backend
+
+Admin pages and checkout APIs use the separate Express backend on `http://localhost:3002`. If that server is down, frontend rewrites like `/api/zones/all` return `500`.
+
+Run the backend in a second terminal:
+
+```bash
+npm run backend:dev
+```
+
+Useful backend commands:
+
+```bash
+npm run backend:db:migrate
+npm run backend:db:seed
+```
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

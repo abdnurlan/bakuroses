@@ -38,6 +38,7 @@ export const SEED_PRODUCTS: Product[] = withGalleryImages([
     price: 74,
     imageUrl: '/images/products/ivory-hydrangea.png',
     category: 'Kompozisiya',
+    categorySlug: 'premium-kompozisiyalar',
   },
   {
     id: '6',
@@ -48,6 +49,7 @@ export const SEED_PRODUCTS: Product[] = withGalleryImages([
     price: 59,
     imageUrl: '/images/products/ranunculus-candlelight.png',
     category: 'Buket',
+    categorySlug: 'qarisiq-buketler',
   },
   {
     id: '7',
@@ -58,6 +60,7 @@ export const SEED_PRODUCTS: Product[] = withGalleryImages([
     price: 82,
     imageUrl: '/images/products/morning-rose-box.png',
     category: 'Qutu',
+    categorySlug: 'sebet-qutu-kompozisiyalar',
   },
   {
     id: '8',
@@ -68,6 +71,7 @@ export const SEED_PRODUCTS: Product[] = withGalleryImages([
     price: 42,
     imageUrl: '/images/products/pastel-tulip-cloud.png',
     category: 'Yaz',
+    categorySlug: 'yeni-dogulmus',
   },
   {
     id: '9',
@@ -78,6 +82,7 @@ export const SEED_PRODUCTS: Product[] = withGalleryImages([
     price: 77,
     imageUrl: '/images/products/olive-white-bouquet.png',
     category: 'Ağ Ton',
+    categorySlug: 'toy-ad-guunu-nisar-dekor',
   },
   {
     id: '10',
@@ -88,6 +93,7 @@ export const SEED_PRODUCTS: Product[] = withGalleryImages([
     price: 33,
     imageUrl: '/images/products/dinner-mini.png',
     category: 'Masa',
+    categorySlug: 'yeni-il-kompozisiyalari',
   },
   {
     id: '1',
@@ -98,6 +104,7 @@ export const SEED_PRODUCTS: Product[] = withGalleryImages([
     price: 68,
     imageUrl: '/images/products/peony-bouquet.png',
     category: 'Buket',
+    categorySlug: 'mono-buketler',
   },
   {
     id: '2',
@@ -108,6 +115,7 @@ export const SEED_PRODUCTS: Product[] = withGalleryImages([
     price: 45,
     imageUrl: '/images/products/rose-crown.png',
     category: 'Tac',
+    categorySlug: 'gelin-buketleri',
   },
   {
     id: '3',
@@ -118,6 +126,7 @@ export const SEED_PRODUCTS: Product[] = withGalleryImages([
     price: 38,
     imageUrl: '/images/products/mint-wildflower.png',
     category: 'Dəstə',
+    categorySlug: 'novruz',
   },
   {
     id: '4',
@@ -128,5 +137,6 @@ export const SEED_PRODUCTS: Product[] = withGalleryImages([
     price: 55,
     imageUrl: '/images/products/dried-pampas.png',
     category: 'Quru',
+    categorySlug: 'art',
   },
 ]);

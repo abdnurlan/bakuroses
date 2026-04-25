@@ -73,7 +73,7 @@ export function CartDrawer() {
       '',
       `${t('cart_whatsapp_total')} ${totalAmount.toFixed(0)} ₼`,
     ].join('\n');
-  }, [cartItems, deliveryDate, totalAmount]);
+  }, [cartItems, deliveryDate, t, totalAmount]);
 
   const handleWhatsAppCheckout = () => {
     if (!deliveryDate) {

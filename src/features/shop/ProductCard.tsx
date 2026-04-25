@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Check, ShoppingBag } from '@phosphor-icons/react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
@@ -20,6 +20,7 @@ const BLUR_PLACEHOLDER =
 export function ProductCard({ product }: ProductCardProps) {
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [canHover, setCanHover] = useState(false);
   const addToCart = useAppStore((s) => s.addToCart);
   const { t } = useLang();
   const cardRef = useRef<HTMLElement>(null);
@@ -37,8 +38,22 @@ export function ProductCard({ product }: ProductCardProps) {
   const imgX = useTransform(sx, [-0.5, 0.5], ['-3%', '3%']);
   const imgY = useTransform(sy, [-0.5, 0.5], ['-3%', '3%']);
   const [glossPos, setGlossPos] = useState({ x: 50, y: 50 });
+  const isExpanded = canHover ? hovered : true;
+
+  useEffect(() => {
+    const media = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const syncCanHover = () => setCanHover(media.matches);
+
+    syncCanHover();
+    media.addEventListener('change', syncCanHover);
+
+    return () => {
+      media.removeEventListener('change', syncCanHover);
+    };
+  }, []);
 
   const onMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (!canHover) return;
     const r = cardRef.current?.getBoundingClientRect();
     if (!r) return;
     const nx = (e.clientX - r.left) / r.width - 0.5;
@@ -100,10 +115,13 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="pc-vignette" />
 
         <div className="pc-top">
-          <span className="pc-number">№ {productNumber}</span>
+          <div className="pc-top-tags">
+            <span className="pc-number">№ {productNumber}</span>
+            <span className="pc-tag">{t('product_studio_pick')}</span>
+          </div>
           <motion.span
             className="pc-price"
-            animate={hovered ? { scale: 1.05, y: -2 } : { scale: 1, y: 0 }}
+            animate={isExpanded ? { scale: 1.05, y: -2 } : { scale: 1, y: 0 }}
             transition={{ duration: 0.28 }}
           >
             {product.price.toFixed(0)} ₼
@@ -113,7 +131,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="pc-bottom">
           <motion.div
             className="pc-name-wrap"
-            animate={hovered ? { y: 0, opacity: 1 } : { y: 16, opacity: 0 }}
+            animate={isExpanded ? { y: 0, opacity: 1 } : { y: 16, opacity: 0 }}
             transition={{ duration: 0.36 }}
           >
             <h3 className="pc-name">{product.name}</h3>
@@ -122,7 +140,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
           <motion.button
             className={`pc-btn ${added ? 'is-added' : ''}`}
-            animate={hovered ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+            animate={isExpanded ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
             transition={{ duration: 0.36, delay: 0.05 }}
             whileTap={{ scale: 0.92 }}
             onClick={handleAdd}
@@ -137,8 +155,8 @@ export function ProductCard({ product }: ProductCardProps) {
       {/* footer */}
       <div className="pc-footer">
         <div className="pc-footer-left">
-          <span className="pc-footer-name">{product.name}</span>
-          {product.category && <span className="pc-footer-cat">{product.category}</span>}
+          <span className="pc-footer-name">{product.category ?? t('product_ready')}</span>
+          <span className="pc-footer-cat">{product.stemNote ?? t('product_ready')}</span>
         </div>
         <motion.button
           className={`pc-footer-btn ${added ? 'is-added' : ''}`}

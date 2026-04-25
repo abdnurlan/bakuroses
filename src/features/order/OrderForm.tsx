@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { MapPicker } from './MapPicker';
-import { fetchProducts } from '@/api/products';
 import { checkCoverage, type Zone } from '@/api/zones';
 import { createOrder, type OrderItem } from '@/api/orders';
 import { validatePromoCode, type PromoValidateResult } from '@/api/promoCodes';
@@ -30,11 +29,6 @@ export function OrderForm() {
   const [promoInput, setPromoInput] = useState('');
   const [promoResult, setPromoResult] = useState<PromoValidateResult | null>(null);
   const [promoLoading, setPromoLoading] = useState(false);
-
-  const { data: products = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: fetchProducts,
-  });
 
   const mutation = useMutation({
     mutationFn: createOrder,

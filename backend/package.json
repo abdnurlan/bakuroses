@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",
-    "build": "tsc",
+    "build": "tsc && cp -r src/templates dist/templates",
     "start": "node dist/server.js",
     "db:generate": "prisma generate --schema src/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema src/prisma/schema.prisma",

@@ -197,17 +197,16 @@ export function HeroCanvasScrub() {
           scrub: 0.65,
           anticipatePin: 1,
           invalidateOnRefresh: true,
+          onRefresh: () => renderNearestAvailableFrame(currentFrameRef.current),
         },
       });
-
-      ScrollTrigger.refresh();
 
       return () => {
         scrubTween.scrollTrigger?.kill();
         scrubTween.kill();
       };
     },
-    { scope: sectionRef, dependencies: [isSequenceReady, renderNearestAvailableFrame] }
+    { scope: sectionRef, dependencies: [isSequenceReady] }
   );
 
   return (

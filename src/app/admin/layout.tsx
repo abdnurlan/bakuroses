@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -14,15 +14,11 @@ const NAV = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(
+    () => typeof window !== 'undefined' && sessionStorage.getItem('admin_authed') === 'true',
+  );
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (sessionStorage.getItem('admin_authed') === 'true') {
-      setAuthed(true);
-    }
-  }, []);
 
   const handleLogin = () => {
     if (password === (process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? 'admin123')) {

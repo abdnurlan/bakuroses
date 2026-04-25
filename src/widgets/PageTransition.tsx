@@ -55,15 +55,16 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
           backgroundColor: getOverlayColor(pathname),
           pointerEvents: 'none',
           transformOrigin: 'left center',
+          transform: 'scaleX(0)',
         }}
       />
 
       {/* Framer Motion page content */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={pathname}
           variants={pageVariants}
-          initial="initial"
+          initial={false}
           animate="animate"
           exit="exit"
           style={{ position: 'relative', minHeight: '100vh' }}

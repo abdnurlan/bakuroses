@@ -15,14 +15,16 @@ import deliveriesRouter from './routes/deliveries';
 import productsRouter from './routes/products';
 import adminRouter from './routes/admin';
 import promoCodesRouter from './routes/promoCodes';
+import categoriesRouter from './routes/categories';
 
 const app = express();
 const server = http.createServer(app);
 
 const ALLOWED_ORIGINS = [
   process.env.CLIENT_URL ?? 'http://localhost:3000',
-  'http://localhost:3001',
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
 ];
 
 const io = new Server(server, {
@@ -51,12 +53,13 @@ app.use('/api/deliveries', deliveriesRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/promo-codes', promoCodesRouter);
+app.use('/api/categories', categoriesRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-const PORT = Number(process.env.PORT ?? 3001);
+const PORT = Number(process.env.PORT ?? 3002);
 server.listen(PORT, () => {
   console.log(`🚀 Bakuroses API running on http://localhost:${PORT}`);
 });

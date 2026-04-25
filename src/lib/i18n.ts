@@ -3,11 +3,25 @@ export type Locale = 'az' | 'en' | 'ru';
 export const translations = {
   az: {
     // Navbar
+    nav_about: 'Biz Kimik',
     nav_collection: 'Kolleksiya',
+    nav_testimonials: 'Rəylər',
     nav_order: 'Sifariş et',
     nav_cart: 'Səbət',
     nav_open: 'Menyunu aç',
     nav_close: 'Menyunu bağla',
+
+    // Quick Categories
+    quick_kicker: 'Sürətli Seçim',
+    quick_title: 'Məqsədə və ya büdcəyə uyğun seçin.',
+    quick_cat_1_title: 'Petite',
+    quick_cat_1_desc: '50 ₼-dək zərif kompozisiyalar',
+    quick_cat_2_title: 'Signature',
+    quick_cat_2_desc: '50 ₼ - 100 ₼ arası klassik buketlər',
+    quick_cat_3_title: 'Premium',
+    quick_cat_3_desc: '100 ₼ - 200 ₼ arası lüks təqdimat',
+    quick_cat_4_title: 'Qutuda Güllər',
+    quick_cat_4_desc: 'Məkan və ofis üçün ideal seçim',
 
     // Hero
     hero_kicker: 'Baku Roses Gül Evi',
@@ -70,19 +84,13 @@ export const translations = {
     atelier_feature_copy: 'Studiyamızın yanaşması adi floristika deyil, daha çox editorial səhnə quruluşuna yaxındır. Tonal ləçəklər, nəfəs alan boşluqlar və yumşaq siluet daha sakit bir lüks hissi yaradır.',
 
     collection_kicker: 'Kolleksiya',
-    collection_title: 'Boutique yaxınlığı ilə qurulan editorial buketlər.',
+    collection_title: 'Seçilmiş buketlər.',
     collection_copy: 'Müasir mənzillər, otel suitləri, şam süfrələri və Bakı üzrə düşünülmüş çatdırılmalar üçün hazırlanıb.',
-
-    occasions_kicker: 'Nə Zaman Göndərməli',
-    occasions_title: 'Adi buketdən daha çoxunu haqq edən anlar üçün hazırlanıb.',
-    occasion_1: 'Özəl axşam yeməkləri və masa tərtibatı',
-    occasion_2: 'Ad günü səhər çatdırılmaları',
-    occasion_3: 'Otel qarşılama və concierge hədiyyələri',
-    occasion_4: 'Üzr və təşəkkür üçün sakit buketlər',
 
     testimonials_kicker: 'Müştəri Rəyləri',
     testimonials_title: 'Sifarişçilərimiz nə deyir',
     testimonials_subtitle: 'Hər buket arxasında real münasibət var.',
+    testimonial_verified: 'Təsdiqlənmiş sifariş',
     testimonial_1_text: 'Tələsik anımı çox rahat şəkildə çiçək əldə etdim. Operativ və xoş yanaşma üçün təşəkkür edirəm!',
     testimonial_1_name: 'Nərmin Əliyeva',
     testimonial_2_text: 'İkinci dəfədir istifadə edirəm. Tez, səmimi və keyfiyyətli oldu. Təcili lazım idi, vaxtında hazırladılar. Əməkdaşları gülərüz və mədəni idilər.',
@@ -106,6 +114,7 @@ export const translations = {
     cta_title: 'Gözəlliyi\nbugün çatdıraq.',
     cta_copy: 'Bakı üzrə 24/7 çatdırılma. Hər sifariş fərdi florist tərəfindən hazırlanır.',
     cta_btn_collection: 'Kolleksiyaya bax',
+    cta_btn_order: 'Sifariş yarat',
     cta_btn_whatsapp: 'WhatsApp ilə əlaqə',
     cta_stat_delivery: 'Çatdırılma',
     cta_stat_since: 'Fəaliyyətdən',
@@ -131,6 +140,7 @@ export const translations = {
     product_next: 'Növbəti məhsullar',
     product_pagination: 'Kolleksiya səhifələri',
     product_page: 'Səhifə',
+    cursor_drag: 'Sürüşdür',
 
     // Shop
     shop_title: 'Bütün Kolleksiya',
@@ -191,14 +201,51 @@ export const translations = {
     status_delivered: 'Çatdırıldı',
     status_cancelled: '❌ Sifariş ləğv edildi',
     status_payment_pending: '💳 Ödəniş gözlənilir…',
+
+    // Category Section (homepage)
+    cat_section_kicker: 'Kateqoriyalar',
+    cat_section_title: 'Hər məqsəd üçün\ndüzgün güllər.',
+    cat_section_copy: 'Mono buketdən toy dekoruna qədər — istənilən tədbirə uyğun kompozisiya.',
+    cat_section_see_all: 'Bütün kolleksiyaya bax',
+
+    // Shop filters
+    shop_search_placeholder: 'Buket axtar…',
+    shop_filters: 'Filterlər',
+    shop_filter_category: 'Kateqoriya',
+    shop_filter_all: 'Hamısı',
+    shop_filter_price: 'Qiymət aralığı',
+    shop_price_min: 'Minimum',
+    shop_price_max: 'Maksimum',
+    shop_sort_default: 'Standart sıralama',
+    shop_sort_price_asc: 'Qiymət: aşağıdan yuxarı',
+    shop_sort_price_desc: 'Qiymət: yuxarıdan aşağı',
+    shop_sort_newest: 'Ən yeni',
+    shop_result_count: '{n} məhsul tapıldı',
+    shop_clear_filters: 'Filterləri sıfırla',
+    shop_no_results: 'Nəticə tapılmadı',
+    shop_no_results_sub: 'Fərqli açar söz və ya kateqoriya ilə cəhd edin.',
+    shop_fallback_catalog: 'Canlı kataloq yüklənmədi, nümunə kolleksiya göstərilir.',
   },
 
   en: {
+    nav_about: 'About',
     nav_collection: 'Collection',
+    nav_testimonials: 'Reviews',
     nav_order: 'Order',
     nav_cart: 'Cart',
     nav_open: 'Open menu',
     nav_close: 'Close menu',
+
+    quick_kicker: 'Quick Selection',
+    quick_title: 'Choose by occasion or budget.',
+    quick_cat_1_title: 'Petite',
+    quick_cat_1_desc: 'Refined compositions up to 50 ₼',
+    quick_cat_2_title: 'Signature',
+    quick_cat_2_desc: 'Classic bouquets 50 ₼ - 100 ₼',
+    quick_cat_3_title: 'Premium',
+    quick_cat_3_desc: 'Luxury presentation 100 ₼ - 200 ₼',
+    quick_cat_4_title: 'Boxed Flowers',
+    quick_cat_4_desc: 'Ideal choice for spaces and offices',
 
     hero_kicker: 'Baku Roses Flower House',
     hero_title: 'Flowers crafted with taste,\npresented like a frame.',
@@ -259,19 +306,13 @@ export const translations = {
     atelier_feature_copy: "Our studio's approach is closer to editorial staging than ordinary floristry. Tonal petals, breathing spaces and a soft silhouette create a quieter sense of luxury.",
 
     collection_kicker: 'Collection',
-    collection_title: 'Editorial bouquets built with boutique closeness.',
+    collection_title: 'Curated bouquets.',
     collection_copy: 'Created for modern apartments, hotel suites, candlelit tables and considered deliveries across Baku.',
-
-    occasions_kicker: 'When to Send',
-    occasions_title: 'Made for moments that deserve more than an ordinary bouquet.',
-    occasion_1: 'Private dinners and table settings',
-    occasion_2: 'Birthday morning deliveries',
-    occasion_3: 'Hotel welcome and concierge gifts',
-    occasion_4: 'Quiet bouquets for apology and gratitude',
 
     testimonials_kicker: 'Customer Reviews',
     testimonials_title: 'What our clients say',
     testimonials_subtitle: 'Every bouquet carries a real relationship behind it.',
+    testimonial_verified: 'Verified order',
     testimonial_1_text: 'Received flowers very easily during a rushed moment. Thank you for the prompt and pleasant approach!',
     testimonial_1_name: 'Narmin Aliyeva',
     testimonial_2_text: 'This is my second time using them. It was fast, sincere, and high-quality. I needed it urgently, and they prepared it on time. The staff were cheerful and polite.',
@@ -295,6 +336,7 @@ export const translations = {
     cta_title: 'Let us deliver\nbeauty today.',
     cta_copy: '24/7 delivery across Baku. Every order is prepared by a personal florist.',
     cta_btn_collection: 'View collection',
+    cta_btn_order: 'Start order',
     cta_btn_whatsapp: 'Contact via WhatsApp',
     cta_stat_delivery: 'Delivery',
     cta_stat_since: 'Since',
@@ -318,6 +360,7 @@ export const translations = {
     product_next: 'Next products',
     product_pagination: 'Collection pages',
     product_page: 'Page',
+    cursor_drag: 'Drag',
 
     // Shop
     shop_title: 'Full Collection',
@@ -374,14 +417,51 @@ export const translations = {
     status_delivered: 'Delivered',
     status_cancelled: '❌ Order cancelled',
     status_payment_pending: '💳 Awaiting payment…',
+
+    // Category Section (homepage)
+    cat_section_kicker: 'Categories',
+    cat_section_title: 'The right flowers\nfor every occasion.',
+    cat_section_copy: 'From mono bouquets to wedding decor — a composition for every event.',
+    cat_section_see_all: 'View full collection',
+
+    // Shop filters
+    shop_search_placeholder: 'Search bouquets…',
+    shop_filters: 'Filters',
+    shop_filter_category: 'Category',
+    shop_filter_all: 'All',
+    shop_filter_price: 'Price range',
+    shop_price_min: 'Minimum',
+    shop_price_max: 'Maximum',
+    shop_sort_default: 'Default sort',
+    shop_sort_price_asc: 'Price: low to high',
+    shop_sort_price_desc: 'Price: high to low',
+    shop_sort_newest: 'Newest first',
+    shop_result_count: '{n} products found',
+    shop_clear_filters: 'Clear filters',
+    shop_no_results: 'No results found',
+    shop_no_results_sub: 'Try a different keyword or category.',
+    shop_fallback_catalog: 'Live catalog did not load, showing the sample collection.',
   },
 
   ru: {
+    nav_about: 'О нас',
     nav_collection: 'Коллекция',
+    nav_testimonials: 'Отзывы',
     nav_order: 'Заказать',
     nav_cart: 'Корзина',
     nav_open: 'Открыть меню',
     nav_close: 'Закрыть меню',
+
+    quick_kicker: 'Быстрый выбор',
+    quick_title: 'Выбирайте по поводу или бюджету.',
+    quick_cat_1_title: 'Petite',
+    quick_cat_1_desc: 'Изящные композиции до 50 ₼',
+    quick_cat_2_title: 'Signature',
+    quick_cat_2_desc: 'Классические букеты 50 ₼ - 100 ₼',
+    quick_cat_3_title: 'Premium',
+    quick_cat_3_desc: 'Люксовая подача 100 ₼ - 200 ₼',
+    quick_cat_4_title: 'Цветы в коробке',
+    quick_cat_4_desc: 'Идеальный выбор для дома и офиса',
 
     hero_kicker: 'Baku Roses — Цветочный Дом',
     hero_title: 'Цветы, созданные со вкусом,\nпредставленные как кадр.',
@@ -442,19 +522,13 @@ export const translations = {
     atelier_feature_copy: 'Подход нашей студии ближе к editorial-постановке, чем к обычной флористике. Тональные лепестки, дышащие пространства и мягкий силуэт создают более спокойное ощущение роскоши.',
 
     collection_kicker: 'Коллекция',
-    collection_title: 'Редакционные букеты с boutique-близостью.',
+    collection_title: 'Избранные букеты.',
     collection_copy: 'Создано для современных квартир, гостиничных номеров, ужинов при свечах и продуманных доставок по Баку.',
-
-    occasions_kicker: 'Когда отправить',
-    occasions_title: 'Создано для моментов, достойных большего, чем обычный букет.',
-    occasion_1: 'Частные ужины и сервировка стола',
-    occasion_2: 'Утренние доставки на день рождения',
-    occasion_3: 'Гостиничные приветствия и подарки консьержа',
-    occasion_4: 'Тихие букеты в знак извинения и благодарности',
 
     testimonials_kicker: 'Отзывы клиентов',
     testimonials_title: 'Что говорят наши клиенты',
     testimonials_subtitle: 'За каждым букетом стоят реальные отношения.',
+    testimonial_verified: 'Подтверждённый заказ',
     testimonial_1_text: 'Получила цветы очень легко в момент спешки. Спасибо за оперативный и приятный подход!',
     testimonial_1_name: 'Нярмин Алиева',
     testimonial_2_text: 'Пользуюсь во второй раз. Быстро, искренне и качественно. Нужно было срочно, подготовили вовремя. Сотрудники были жизнерадостными и вежливыми.',
@@ -478,6 +552,7 @@ export const translations = {
     cta_title: 'Доставим красоту\nуже сегодня.',
     cta_copy: 'Доставка по Баку 24/7. Каждый заказ готовится персональным флористом.',
     cta_btn_collection: 'Смотреть коллекцию',
+    cta_btn_order: 'Оформить заказ',
     cta_btn_whatsapp: 'Написать в WhatsApp',
     cta_stat_delivery: 'Доставка',
     cta_stat_since: 'С года',
@@ -501,6 +576,7 @@ export const translations = {
     product_next: 'Следующие',
     product_pagination: 'Страницы коллекции',
     product_page: 'Страница',
+    cursor_drag: 'Листай',
 
     // Shop
     shop_title: 'Вся Коллекция',
@@ -557,6 +633,30 @@ export const translations = {
     status_delivered: 'Доставлен',
     status_cancelled: '❌ Заказ отменён',
     status_payment_pending: '💳 Ожидание оплаты…',
+
+    // Category Section (homepage)
+    cat_section_kicker: 'Категории',
+    cat_section_title: 'Правильные цветы\nдля каждого повода.',
+    cat_section_copy: 'От моно-букетов до свадебного декора — композиция для любого мероприятия.',
+    cat_section_see_all: 'Смотреть всю коллекцию',
+
+    // Shop filters
+    shop_search_placeholder: 'Искать букет…',
+    shop_filters: 'Фильтры',
+    shop_filter_category: 'Категория',
+    shop_filter_all: 'Все',
+    shop_filter_price: 'Диапазон цен',
+    shop_price_min: 'Минимум',
+    shop_price_max: 'Максимум',
+    shop_sort_default: 'По умолчанию',
+    shop_sort_price_asc: 'Цена: по возрастанию',
+    shop_sort_price_desc: 'Цена: по убыванию',
+    shop_sort_newest: 'Сначала новые',
+    shop_result_count: 'Найдено {n} товаров',
+    shop_clear_filters: 'Сбросить фильтры',
+    shop_no_results: 'Ничего не найдено',
+    shop_no_results_sub: 'Попробуйте другое слово или категорию.',
+    shop_fallback_catalog: 'Живой каталог не загрузился, показана демо-коллекция.',
   },
 } as const;
 

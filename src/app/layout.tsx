@@ -34,6 +34,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${displayFont.variable} ${bodyFont.variable} ${priceFont.variable}`}>
       <body className="app-shell antialiased">
+        <div className="site-ambience" aria-hidden="true">
+          <span className="site-ambience__blob site-ambience__blob--rose" />
+          <span className="site-ambience__blob site-ambience__blob--olive" />
+          <span className="site-ambience__blob site-ambience__blob--ivory" />
+          <span className="site-ambience__grain" />
+        </div>
         <QueryProvider>
           <LanguageProvider>
             <MotionConfig reducedMotion="user">

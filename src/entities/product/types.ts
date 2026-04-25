@@ -8,5 +8,6 @@ export interface Product {
   imageUrl: string;
   galleryImages?: string[];
   category: string;
+  categorySlug?: string;
   aiPrompt?: string;
 }

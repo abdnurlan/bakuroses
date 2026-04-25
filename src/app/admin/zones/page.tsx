@@ -23,14 +23,6 @@ const EMPTY = {
   isActive: true,
 };
 
-const DEFAULT_ZONES = [
-  { name: '0–3 km',   centerLat: STORE_LAT, centerLng: STORE_LNG, radiusKm: 3,  deliveryFee: 5,  color: '#4ade80', isActive: true },
-  { name: '3–7 km',   centerLat: STORE_LAT, centerLng: STORE_LNG, radiusKm: 7,  deliveryFee: 7,  color: '#86efac', isActive: true },
-  { name: '7–10 km',  centerLat: STORE_LAT, centerLng: STORE_LNG, radiusKm: 10, deliveryFee: 10, color: '#fbbf24', isActive: true },
-  { name: '10–15 km', centerLat: STORE_LAT, centerLng: STORE_LNG, radiusKm: 15, deliveryFee: 15, color: '#fb923c', isActive: true },
-  { name: '15–20 km', centerLat: STORE_LAT, centerLng: STORE_LNG, radiusKm: 20, deliveryFee: 20, color: '#f87171', isActive: true },
-];
-
 interface ZoneWithFee extends Zone {
   deliveryFee: number;
 }
@@ -40,7 +32,6 @@ export default function AdminZonesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<ZoneWithFee | null>(null);
   const [form, setForm] = useState({ ...EMPTY });
-  const [seeding, setSeeding] = useState(false);
 
   const { data: zones = [], isLoading } = useQuery<ZoneWithFee[]>({
     queryKey: ['admin-zones'],
@@ -91,70 +82,39 @@ export default function AdminZonesPage() {
     else createMutation.mutate(form);
   };
 
-  const handleSeedDefaults = async () => {
-    if (zones.length > 0) {
-      if (!confirm('Mövcud zonalar silinib standart zonalar əlavə edilsin?')) return;
-      for (const z of zones) {
-        await api.delete(`/api/zones/${z.id}`, { headers: headers() });
-      }
-    }
-    setSeeding(true);
-    try {
-      for (const z of DEFAULT_ZONES) {
-        await api.post('/api/zones', z, { headers: headers() });
-      }
-      qc.invalidateQueries({ queryKey: ['admin-zones'] });
-      toast.success('5 standart zona əlavə edildi');
-    } catch {
-      toast.error('Xəta baş verdi');
-    } finally {
-      setSeeding(false);
-    }
-  };
-
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
           <h1 className="font-display" style={{ fontSize: '1.75rem', fontWeight: 600 }}>Çatdırılma Zonaları</h1>
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
-            Mağaza: 9RRV+H3 Baku ({STORE_LAT}, {STORE_LNG}) · Hər zona eyni mərkəzdən radius ilə hesablanır
+            Mağaza: 9RRV+H3 Baku ({STORE_LAT}, {STORE_LNG}) · Hazırda {zones.length} zona var, aktiv zonalar radius sırasına görə işləyir
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={handleSeedDefaults}
-            disabled={seeding}
-            style={{
-              padding: '0.7rem 1.1rem', borderRadius: 10,
-              border: '1px solid rgba(139,151,112,0.4)', background: 'rgba(139,151,112,0.1)',
-              fontSize: '0.8rem', fontWeight: 600, cursor: seeding ? 'not-allowed' : 'pointer',
-              color: 'var(--color-text)', opacity: seeding ? 0.6 : 1,
-            }}
-          >
-            {seeding ? 'Yüklənir…' : '⚡ Standart 5 zona'}
-          </button>
-          <button onClick={() => { resetForm(); setShowForm(true); }} style={btnPrimary}>
-            + Yeni zona
-          </button>
-        </div>
+        <button onClick={() => { resetForm(); setShowForm(true); }} style={btnPrimary}>
+          + Yeni zona
+        </button>
       </div>
 
-      {/* Fee legend */}
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: '0.5rem',
         marginBottom: '1.5rem', marginTop: '0.75rem',
       }}>
-        {DEFAULT_ZONES.map(z => (
-          <div key={z.name} style={{
+        {zones.map(z => (
+          <div key={z.id} style={{
             display: 'flex', alignItems: 'center', gap: '0.4rem',
             padding: '0.3rem 0.75rem', borderRadius: 20, fontSize: '0.78rem', fontWeight: 600,
-            background: `${z.color}22`, border: `1px solid ${z.color}55`, color: 'var(--color-text)',
+            background: `${z.color ?? '#cf6f94'}22`, border: `1px solid ${z.color ?? '#cf6f94'}55`, color: 'var(--color-text)',
           }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: z.color, display: 'inline-block' }} />
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: z.color ?? '#cf6f94', display: 'inline-block' }} />
             {z.name} → {z.deliveryFee} ₼
           </div>
         ))}
+        {zones.length === 0 && (
+          <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
+            Hələ zona əlavə edilməyib.
+          </span>
+        )}
       </div>
 
       {showForm && (
@@ -287,13 +247,7 @@ export default function AdminZonesPage() {
               {zones.length === 0 && (
                 <tr>
                   <td colSpan={7} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                    Zona yoxdur —{' '}
-                    <button
-                      onClick={handleSeedDefaults}
-                      style={{ background: 'none', border: 'none', color: 'var(--color-accent-strong)', fontWeight: 700, cursor: 'pointer', fontSize: 'inherit' }}
-                    >
-                      standart 5 zonanı əlavə edin
-                    </button>
+                    Zona yoxdur. Yuxarıdakı <strong>Yeni zona</strong> düyməsi ilə zonalarını əlavə et.
                   </td>
                 </tr>
               )}

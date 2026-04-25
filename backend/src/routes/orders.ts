@@ -23,6 +23,7 @@ const CreateOrderSchema = z.object({
   paymentType: z.enum(['cash', 'epoint']),
   zoneId: z.string(),
   promoCode: z.string().optional(),
+  deliveryFee: z.number().min(0).optional(),
 });
 
 const STATUS_MESSAGES: Record<string, { title: string; body: string }> = {

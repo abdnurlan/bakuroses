@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { HeroCanvasScrub } from '@/features/hero/HeroCanvasScrub';
 import { AboutStudio } from '@/features/shop/AboutStudio';
+import { AtelierShowcase } from '@/features/shop/AtelierShowcase';
 import { ProductGrid } from '@/features/shop/ProductGrid';
 import { AnimatedTitleReveal } from '@/shared/ui/AnimatedTitleReveal';
 import { RevealOnScroll } from '@/shared/ui/RevealOnScroll';
 import { Testimonials } from '@/features/shop/Testimonials';
+import { SiteFooter } from '@/features/shop/SiteFooter';
 import { useLang } from '@/providers/LanguageProvider';
+import { CategorySection } from '@/features/shop/CategorySection';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
@@ -28,30 +31,34 @@ export default function HomePage() {
     <main>
       <HeroCanvasScrub />
 
-      <AboutStudio />
+      <CategorySection />
 
-      <section id="collection" className="section-shell collection-shell">
-        <RevealOnScroll variant="fade" style={{ marginBottom: '4rem' }}>
+      {/* Collection heading — stays inside max-width container */}
+      <section id="collection" className="section-shell collection-shell" aria-labelledby="collection-title" style={{ paddingBottom: '2rem' }}>
+        <RevealOnScroll variant="fade">
           <div className="section-heading">
             <p className="section-kicker">{t('collection_kicker')}</p>
-            <AnimatedTitleReveal as="h2" className="section-title" text={t('collection_title')} />
+            <AnimatedTitleReveal id="collection-title" as="h2" className="section-title" text={t('collection_title')} />
             <p className="section-copy">{t('collection_copy')}</p>
           </div>
         </RevealOnScroll>
-        <ProductGrid />
       </section>
+
+      {/* ProductGrid — full-width, outside section container */}
+      <div style={{ width: '100%', overflow: 'hidden', paddingBottom: '5rem' }}>
+        <ProductGrid />
+      </div>
+
+      <AboutStudio />
+
+      <AtelierShowcase />
 
       <Testimonials />
 
       {/* ── Final CTA ── */}
       <section className="final-cta-shell">
         <div className="final-cta-inner">
-          <motion.div
-            className="final-cta-glow"
-            animate={{ scale: [1, 1.12, 1], opacity: [0.55, 0.75, 0.55] }}
-            transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-            aria-hidden="true"
-          />
+          <div className="final-cta-glow" aria-hidden="true" />
 
           <motion.div
             className="final-cta-content"
@@ -78,14 +85,6 @@ export default function HomePage() {
               <Link href="/shop" className="final-cta-btn-primary">
                 {t('cta_btn_collection')}
               </Link>
-              <a
-                href="https://wa.me/994XXXXXXXXX"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="final-cta-btn-ghost"
-              >
-                {t('cta_btn_whatsapp')}
-              </a>
             </motion.div>
 
             <motion.div className="final-cta-stats" variants={fadeUp}>
@@ -98,33 +97,13 @@ export default function HomePage() {
             </motion.div>
           </motion.div>
 
-          <motion.div
-            className="final-cta-petal final-cta-petal-1"
-            animate={{ rotate: [0, 8, -4, 0], y: [0, -10, 5, 0] }}
-            transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
-            aria-hidden="true"
-          />
-          <motion.div
-            className="final-cta-petal final-cta-petal-2"
-            animate={{ rotate: [0, -6, 10, 0], y: [0, 12, -6, 0] }}
-            transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
-            aria-hidden="true"
-          />
-          <motion.div
-            className="final-cta-petal final-cta-petal-3"
-            animate={{ rotate: [0, 12, -8, 0], y: [0, -8, 12, 0] }}
-            transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 3 }}
-            aria-hidden="true"
-          />
+          <div className="final-cta-petal final-cta-petal-1" aria-hidden="true" />
+          <div className="final-cta-petal final-cta-petal-2" aria-hidden="true" />
+          <div className="final-cta-petal final-cta-petal-3" aria-hidden="true" />
         </div>
       </section>
 
-      <footer className="site-footer">
-        <span className="site-footer-mark">Baku Roses</span>
-        <span className="site-footer-copy">
-          © {new Date().getFullYear()} · {t('footer_rights')}
-        </span>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

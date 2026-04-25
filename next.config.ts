@@ -39,8 +39,16 @@ const nextConfig: NextConfig = {
         destination: `${BACKEND_URL}/api/products/:path*`,
       },
       {
+        source: '/api/categories/:path*',
+        destination: `${BACKEND_URL}/api/categories/:path*`,
+      },
+      {
         source: '/api/admin/:path*',
         destination: `${BACKEND_URL}/api/admin/:path*`,
+      },
+      {
+        source: '/api/promo-codes/:path*',
+        destination: `${BACKEND_URL}/api/promo-codes/:path*`,
       },
       {
         source: '/health',

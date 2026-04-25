@@ -1,50 +1,56 @@
 "use client";
-import React from "react";
-import { motion } from "motion/react";
+import React, { useRef } from "react";
 
 export type TestimonialItem = {
   text: string;
-  image: string;
   name: string;
+  meta?: string;
 };
+
+function getInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+}
 
 export const TestimonialsColumn = (props: {
   className?: string;
   testimonials: TestimonialItem[];
   duration?: number;
 }) => {
+  const duration = props.duration ?? 15;
+
   return (
     <div className={props.className} style={{ overflow: "hidden" }}>
-      <motion.div
-        animate={{ translateY: "-50%" }}
-        transition={{
-          duration: props.duration || 15,
-          repeat: Infinity,
-          ease: "linear",
-          repeatType: "loop",
+      <div
+        className="flex flex-col gap-4 pb-4 testimonials-scroll-track"
+        style={{
+          animation: `testimonials-scroll ${duration}s linear infinite`,
+          willChange: 'transform',
         }}
-        className="flex flex-col gap-4 pb-4"
       >
-        {[...new Array(2).fill(0).map((_, index) => (
-          <React.Fragment key={index}>
-            {props.testimonials.map(({ text, image, name }, i) => (
-              <div key={i} className="testimonials-card">
+        {[0, 1].map((pass) => (
+          <React.Fragment key={pass}>
+            {props.testimonials.map(({ text, name, meta }, i) => (
+              <div key={`${pass}-${i}`} className="testimonials-card">
                 <p className="testimonials-card__text">{text}</p>
                 <div className="testimonials-card__author">
-                  <img
-                    width={36}
-                    height={36}
-                    src={image}
-                    alt={name}
-                    className="testimonials-card__avatar"
-                  />
-                  <span className="testimonials-card__name">{name}</span>
+                  <span className="testimonials-card__avatar" aria-hidden="true">
+                    {getInitials(name)}
+                  </span>
+                  <span className="testimonials-card__author-copy">
+                    <span className="testimonials-card__name">{name}</span>
+                    {meta && <span className="testimonials-card__meta">{meta}</span>}
+                  </span>
                 </div>
               </div>
             ))}
           </React.Fragment>
-        ))]}
-      </motion.div>
+        ))}
+      </div>
     </div>
   );
 };

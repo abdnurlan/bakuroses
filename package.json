@@ -4,6 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "backend:dev": "npm run dev --prefix backend",
+    "backend:build": "npm run build --prefix backend",
+    "backend:db:migrate": "npm run db:migrate --prefix backend",
+    "backend:db:seed": "npm run db:seed --prefix backend",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

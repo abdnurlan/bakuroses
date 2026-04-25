@@ -54,25 +54,19 @@ export function AboutStudio() {
   const { t } = useLang();
 
   return (
-    <section className="section-shell about-studio-shell">
+    <section id="about" className="section-shell about-studio-shell" aria-labelledby="about-title">
       <div className="about-studio-layout">
         <div className="about-studio-copy">
-          <motion.p
-            className="section-kicker about-studio-kicker"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-12% 0px' }}
-            transition={{ duration: 0.55, ease: [0.33, 1, 0.68, 1] }}
-          >
-            {t('about_kicker')}
-          </motion.p>
+          <div className="section-heading about-studio-heading">
+            <AnimatedTitleReveal
+              as="h2"
+              className="section-title about-studio-title"
+              text={t('about_kicker')}
+              id="about-title"
+            />
 
-          <AnimatedTitleReveal
-            as="h2"
-            className="section-title about-studio-title"
-            text={t('about_title')}
-          />
+            
+          </div>
 
           <motion.p
             className="about-studio-lead"
