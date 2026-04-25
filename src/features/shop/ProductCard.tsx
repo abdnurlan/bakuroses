@@ -117,14 +117,13 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="pc-top">
           <div className="pc-top-tags">
             <span className="pc-number">№ {productNumber}</span>
-            <span className="pc-tag">{t('product_studio_pick')}</span>
           </div>
           <motion.span
             className="pc-price"
             animate={isExpanded ? { scale: 1.05, y: -2 } : { scale: 1, y: 0 }}
             transition={{ duration: 0.28 }}
           >
-            {product.price.toFixed(0)} ₼
+            {product.price.toFixed(0)}&nbsp;₼
           </motion.span>
         </div>
 

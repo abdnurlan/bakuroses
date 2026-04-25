@@ -467,9 +467,31 @@ function ShopInner() {
   );
 }
 
+function ShopSkeleton() {
+  return (
+    <main className="shop-page">
+      <div className="shop-layout">
+        <div className="shop-sidebar-col">
+          <div className="shop-sidebar" style={{ minHeight: 420 }} />
+        </div>
+        <div className="shop-main-col">
+          <div className="shop-main-head">
+            <div style={{ height: 48, width: 240, borderRadius: 8, background: 'rgba(186,123,145,0.1)' }} />
+          </div>
+          <div className="shop-grid shop-grid--loading">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="shop-skeleton" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export default function ShopPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<ShopSkeleton />}>
       <ShopInner />
     </Suspense>
   );
