@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { asyncHandler } from '../lib/asyncHandler';
 import { generateOrderCode } from '../services/orderCode';
 import { createEpointPayment } from '../services/epoint';
 import { queueEmail } from '../services/email';
 import { emitOrderStatus } from '../services/socket';
+import { haversineDistance } from '../services/maps';
 import { adminGuard } from '../middleware/adminGuard';
 import { validate } from '../middleware/validate';
 
@@ -23,16 +25,22 @@ const CreateOrderSchema = z.object({
   paymentType: z.enum(['cash', 'epoint']),
   zoneId: z.string(),
   promoCode: z.string().optional(),
-  deliveryFee: z.number().min(0).optional(),
 });
 
 const STATUS_MESSAGES: Record<string, { title: string; body: string }> = {
-  CONFIRMED: { title: '✅ Sifariş Təsdiqləndi', body: 'Sifarişiniz hazırlanır.' },
-  PREPARING: { title: '👨‍🍳 Hazırlanır', body: 'Atölyemiz sifarişiniz üzərində işləyir.' },
-  ON_THE_WAY: { title: '🛵 Yolda', body: 'Kuryerimiz sizə doğru gəlir!' },
-  DELIVERED: { title: '📦 Çatdırıldı', body: 'Sifarişinizdən zövq alın!' },
+  CONFIRMED: { title: '✅ Sifariş Təsdiqləndi', body: 'Sifarişiniz təsdiqləndi.' },
   CANCELLED: { title: '❌ Ləğv Edildi', body: 'Sifarişiniz ləğv edildi.' },
 };
+
+const ORDER_STATUSES = ['PENDING_PAYMENT', 'CONFIRMED', 'CANCELLED'] as const;
+
+const UpdateStatusSchema = z.object({
+  status: z.enum(ORDER_STATUSES),
+});
+
+function maskPhone(phone: string): string {
+  return phone.length <= 4 ? '****' : `${'*'.repeat(Math.max(0, phone.length - 4))}${phone.slice(-4)}`;
+}
 
 async function notifyByStatus(order: { id: string; code: string; customerName: string; address: string; total: number; items: { product: { name: string }; quantity: number; price: number }[] }, status: string) {
   if (status === 'CONFIRMED') {
@@ -43,28 +51,32 @@ async function notifyByStatus(order: { id: string; code: string; customerName: s
       { order }
     ).catch(console.error);
   }
-  if (status === 'ON_THE_WAY') {
-    await queueEmail(
-      process.env.ADMIN_EMAIL!,
-      `Sifariş #${order.code} yolda`,
-      'order-on-the-way',
-      { order }
-    ).catch(console.error);
-  }
 }
 
-router.post('/', validate(CreateOrderSchema), async (req, res) => {
-  const { name, phone, address, lat, lng, note, items, paymentType, zoneId, promoCode, deliveryFee: clientDeliveryFee } = req.body;
+router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
+  const { name, phone, address, lat, lng, note, items, paymentType, zoneId, promoCode } = req.body;
 
   const zone = await prisma.zone.findUnique({ where: { id: zoneId } });
-  if (!zone) {
+  if (!zone || !zone.isActive) {
     res.status(400).json({ error: 'Zone not found' });
     return;
   }
 
+  const distanceFromZoneCenter = haversineDistance(lat, lng, zone.centerLat, zone.centerLng);
+  if (distanceFromZoneCenter > zone.radiusKm) {
+    res.status(400).json({ error: 'Selected address is outside the selected delivery zone' });
+    return;
+  }
+
   const products = await prisma.product.findMany({
-    where: { id: { in: items.map((i: { productId: string }) => i.productId) } },
+    where: { id: { in: items.map((i: { productId: string }) => i.productId) }, isActive: true },
   });
+
+  const requestedProductIds = new Set(items.map((i: { productId: string }) => i.productId));
+  if (products.length !== requestedProductIds.size) {
+    res.status(400).json({ error: 'One or more products are unavailable' });
+    return;
+  }
 
   const subtotal = items.reduce((sum: number, item: { productId: string; quantity: number }) => {
     const product = products.find((p) => p.id === item.productId);
@@ -92,8 +104,7 @@ router.post('/', validate(CreateOrderSchema), async (req, res) => {
     }
   }
 
-  // Use server-side zone delivery fee (not client-provided value)
-  const deliveryFee = zone.deliveryFee ?? (clientDeliveryFee ?? 0);
+  const deliveryFee = zone.deliveryFee;
   const total = parseFloat((subtotal + deliveryFee - discountAmount).toFixed(2));
 
   const order = await prisma.order.create({
@@ -123,7 +134,7 @@ router.post('/', validate(CreateOrderSchema), async (req, res) => {
     include: { items: { include: { product: true } } },
   });
 
-  if (promoCodeId) {
+  if (promoCodeId && paymentType === 'cash') {
     await prisma.promoCode.update({
       where: { id: promoCodeId },
       data: { usedCount: { increment: 1 } },
@@ -140,23 +151,22 @@ router.post('/', validate(CreateOrderSchema), async (req, res) => {
       amount: total,
       currency: 'AZN',
       description: `Order #${order.code}`,
-      successRedirectUrl: `${process.env.CLIENT_URL}/track/${order.id}?payment=success`,
-      failRedirectUrl: `${process.env.CLIENT_URL}/track/${order.id}?payment=fail`,
+      successRedirectUrl: `${process.env.CLIENT_URL}/success?order_id=${order.id}`,
+      failRedirectUrl: `${process.env.CLIENT_URL}/error?order_id=${order.id}`,
     });
     res.json({ orderId: order.id, paymentUrl: payment.redirect_url });
     return;
   }
 
-  res.json({ orderId: order.id, trackingUrl: `/track/${order.id}` });
-});
+  res.json({ orderId: order.id, successUrl: `/success?order_id=${order.id}` });
+}));
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', asyncHandler(async (req, res) => {
   const order = await prisma.order.findUnique({
     where: { id: req.params.id },
     include: {
       items: { include: { product: true } },
       zone: true,
-      payment: true,
       delivery: true,
     },
   });
@@ -166,10 +176,13 @@ router.get('/:id', async (req, res) => {
     return;
   }
 
-  res.json(order);
-});
+  res.json({
+    ...order,
+    customerPhone: maskPhone(order.customerPhone),
+  });
+}));
 
-router.get('/:id/status', async (req, res) => {
+router.get('/:id/status', asyncHandler(async (req, res) => {
   const order = await prisma.order.findUnique({
     where: { id: req.params.id },
     select: { id: true, status: true, updatedAt: true },
@@ -181,14 +194,39 @@ router.get('/:id/status', async (req, res) => {
   }
 
   res.json(order);
-});
+}));
 
-router.put('/:id/status', adminGuard, async (req, res) => {
-  const { status } = req.body as { status: string };
+router.put('/:id/status', adminGuard, validate(UpdateStatusSchema), asyncHandler(async (req, res) => {
+  const { status } = req.body as { status: typeof ORDER_STATUSES[number] };
+
+  const currentOrder = await prisma.order.findUnique({
+    where: { id: req.params.id },
+    include: { payment: true },
+  });
+
+  if (!currentOrder) {
+    res.status(404).json({ error: 'Order not found' });
+    return;
+  }
+
+  if (
+    currentOrder.status === 'PENDING_PAYMENT' &&
+    currentOrder.paymentType === 'epoint' &&
+    currentOrder.payment?.status !== 'PAID' &&
+    status !== 'CANCELLED'
+  ) {
+    res.status(400).json({ error: 'Online payment must be paid before confirming this order' });
+    return;
+  }
+
+  if (currentOrder.status === status) {
+    res.json(currentOrder);
+    return;
+  }
 
   const order = await prisma.order.update({
     where: { id: req.params.id },
-    data: { status: status as never },
+    data: { status },
     include: { items: { include: { product: true } } },
   });
 
@@ -196,25 +234,30 @@ router.put('/:id/status', adminGuard, async (req, res) => {
   await notifyByStatus(order, order.status);
 
   res.json(order);
-});
+}));
 
-router.get('/', adminGuard, async (req, res) => {
+router.get('/', adminGuard, asyncHandler(async (req, res) => {
   const page = Number(req.query.page ?? 1);
   const limit = Number(req.query.limit ?? 20);
   const skip = (page - 1) * limit;
+  const status = typeof req.query.status === 'string' && ORDER_STATUSES.includes(req.query.status as typeof ORDER_STATUSES[number])
+    ? req.query.status as typeof ORDER_STATUSES[number]
+    : undefined;
+  const where = status ? { status } : {};
 
   const [orders, total] = await Promise.all([
     prisma.order.findMany({
+      where,
       skip,
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: { items: { include: { product: true } }, zone: true, payment: true, promoCode: true },
     }),
-    prisma.order.count(),
+    prisma.order.count({ where }),
   ]);
 
   res.json({ orders, total, page, limit });
-});
+}));
 
 export { STATUS_MESSAGES };
 export default router;

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { motion, useAnimationFrame, useMotionValue } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { ProductCard } from './ProductCard';
-import { SEED_PRODUCTS } from './products.data';
 import { fetchProducts } from '@/api/products';
 import { useLang } from '@/providers/LanguageProvider';
 
@@ -20,7 +19,7 @@ export function ProductGrid() {
     queryFn: fetchProducts,
   });
 
-  const products = apiProducts ?? SEED_PRODUCTS;
+  const products = apiProducts ?? [];
   const looped = [...products, ...products, ...products];
   const slideWidth = CARD_WIDTH + CARD_BLEED_X * 2;
   const setWidth = products.length * slideWidth;

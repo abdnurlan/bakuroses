@@ -6,9 +6,6 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import type { Zone } from '@/api/zones';
 
-const ADMIN_TOKEN = () => process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? 'admin123';
-const headers = () => ({ 'x-admin-token': ADMIN_TOKEN() });
-
 // Store location: 9RRV+H3 Baku, Azerbaijan
 const STORE_LAT = 40.4093;
 const STORE_LNG = 49.8671;
@@ -36,26 +33,26 @@ export default function AdminZonesPage() {
   const { data: zones = [], isLoading } = useQuery<ZoneWithFee[]>({
     queryKey: ['admin-zones'],
     queryFn: async () => {
-      const res = await api.get('/api/zones/all', { headers: headers() });
+      const res = await api.get('/api/zones/all');
       return res.data;
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: typeof EMPTY) => api.post('/api/zones', data, { headers: headers() }),
+    mutationFn: (data: typeof EMPTY) => api.post('/api/zones', data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-zones'] }); toast.success('Zona əlavə edildi'); resetForm(); },
     onError: () => toast.error('Xəta baş verdi'),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: typeof EMPTY }) =>
-      api.put(`/api/zones/${id}`, data, { headers: headers() }),
+      api.put(`/api/zones/${id}`, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-zones'] }); toast.success('Zona yeniləndi'); resetForm(); },
     onError: () => toast.error('Xəta baş verdi'),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/api/zones/${id}`, { headers: headers() }),
+    mutationFn: (id: string) => api.delete(`/api/zones/${id}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-zones'] }); toast.success('Silindi'); },
     onError: () => toast.error('Xəta baş verdi'),
   });
@@ -201,12 +198,17 @@ export default function AdminZonesPage() {
       {isLoading ? (
         <p style={{ color: 'var(--color-text-soft)' }}>Yüklənir…</p>
       ) : (
-        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--color-border)', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#fafafa' }}>
-                {['', 'Ad', 'Radius', 'Çatdırılma haqqı', 'Mərkəz', 'Status', ''].map(h => (
-                  <th key={h} style={thStyle}>{h}</th>
+                {['', 'Ad', 'Radius', 'Çatdırılma haqqı', 'Mərkəz', 'Status', ''].map((h, index, headers) => (
+                  <th
+                    key={`${h || 'empty'}-${index}`}
+                    style={{ ...thStyle, textAlign: index === headers.length - 1 ? 'right' : 'left' }}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -233,11 +235,11 @@ export default function AdminZonesPage() {
                       {z.isActive ? 'Aktiv' : 'Deaktiv'}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, display: 'flex', gap: '0.5rem' }}>
+                  <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button onClick={() => openEdit(z)} style={btnSmall}>Düzəlt</button>
                     <button
                       onClick={() => { if (confirm(`"${z.name}" silinsin?`)) deleteMutation.mutate(z.id); }}
-                      style={{ ...btnSmall, color: '#dc2626', borderColor: '#fca5a5' }}
+                      style={{ ...btnSmall, marginLeft: '0.5rem', color: '#dc2626', borderColor: '#fca5a5' }}
                     >
                       Sil
                     </button>

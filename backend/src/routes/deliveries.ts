@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { asyncHandler } from '../lib/asyncHandler';
 import { emitCourierLocation } from '../services/socket';
 import { adminGuard } from '../middleware/adminGuard';
 import { validate } from '../middleware/validate';
@@ -13,7 +14,7 @@ const LocationSchema = z.object({
   heading: z.number().min(0).max(360).optional().default(0),
 });
 
-router.post('/:id/location', validate(LocationSchema), async (req, res) => {
+router.post('/:id/location', adminGuard, validate(LocationSchema), asyncHandler(async (req, res) => {
   const { lat, lng, heading } = req.body as { lat: number; lng: number; heading: number };
 
   const delivery = await prisma.delivery.update({
@@ -24,25 +25,25 @@ router.post('/:id/location', validate(LocationSchema), async (req, res) => {
 
   emitCourierLocation(delivery.orderId, lat, lng, heading);
   res.json({ ok: true });
-});
+}));
 
-router.post('/order/:orderId', adminGuard, async (req, res) => {
+router.post('/order/:orderId', adminGuard, asyncHandler(async (req, res) => {
   const delivery = await prisma.delivery.upsert({
     where: { orderId: req.params.orderId },
     update: {},
     create: { orderId: req.params.orderId },
   });
   res.status(201).json(delivery);
-});
+}));
 
-router.get('/', adminGuard, async (_req, res) => {
+router.get('/', adminGuard, asyncHandler(async (_req, res) => {
   const deliveries = await prisma.delivery.findMany({
     include: { order: true },
   });
   res.json(deliveries);
-});
+}));
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', adminGuard, asyncHandler(async (req, res) => {
   const delivery = await prisma.delivery.findUnique({
     where: { id: req.params.id },
     include: { order: true },
@@ -54,6 +55,6 @@ router.get('/:id', async (req, res) => {
   }
 
   res.json(delivery);
-});
+}));
 
 export default router;

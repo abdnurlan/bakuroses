@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { List, X, ShoppingBag } from '@phosphor-icons/react';
 
 const links = [
-  { label: 'Albom', href: '#albom' },
-  { label: 'Kataloq', href: '#kataloq' },
-  { label: 'Haqqımızda', href: '#haqqimizda' },
-  { label: 'Əlaqə', href: '#elaqe' },
+  { label: 'Albom', href: '/shop' },
+  { label: 'Kataloq', href: '/shop' },
+  { label: 'Haqqımızda', href: '/about' },
+  { label: 'Əlaqə', href: '/about' },
 ];
 
 export default function Navbar() {
@@ -46,7 +47,7 @@ export default function Navbar() {
         }}
       >
         {/* Logo */}
-        <a href="#" style={{ textDecoration: 'none' }}>
+        <Link href="/" style={{ textDecoration: 'none' }}>
           <span
             className="font-display"
             style={{
@@ -58,12 +59,12 @@ export default function Navbar() {
           >
             Baku<span style={{ color: '#e11d48' }}>roses</span>
           </span>
-        </a>
+        </Link>
 
         {/* Desktop nav */}
         <nav style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
           {links.map((l) => (
-            <a
+            <Link
               key={l.href}
               href={l.href}
               style={{
@@ -79,11 +80,11 @@ export default function Navbar() {
               className="hidden md:block"
             >
               {l.label}
-            </a>
+            </Link>
           ))}
 
-          <a
-            href="#kataloq"
+          <Link
+            href="/shop"
             style={{
               display: 'none',
               alignItems: 'center',
@@ -110,7 +111,7 @@ export default function Navbar() {
           >
             <ShoppingBag size={16} weight="bold" />
             Sifariş ver
-          </a>
+          </Link>
 
           {/* Mobile burger */}
           <button
@@ -141,7 +142,7 @@ export default function Navbar() {
           className="md:hidden"
         >
           {links.map((l) => (
-            <a
+            <Link
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
@@ -157,10 +158,10 @@ export default function Navbar() {
               }}
             >
               {l.label}
-            </a>
+            </Link>
           ))}
-          <a
-            href="#kataloq"
+          <Link
+            href="/shop"
             onClick={() => setOpen(false)}
             style={{
               display: 'flex',
@@ -179,7 +180,7 @@ export default function Navbar() {
           >
             <ShoppingBag size={16} weight="bold" />
             Sifariş ver
-          </a>
+          </Link>
         </div>
       )}
     </header>

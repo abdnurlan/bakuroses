@@ -216,12 +216,17 @@ export default function AdminPromoCodesPage() {
       {isLoading ? (
         <p style={{ color: 'var(--color-text-soft)' }}>Yüklənir…</p>
       ) : (
-        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--color-border)', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#fafafa' }}>
-                {['Kod', 'Növ', 'Dəyər', 'Min. məbləğ', 'Limit / İstifadə', 'Bitmə tarixi', 'Status', ''].map(h => (
-                  <th key={h} style={thStyle}>{h}</th>
+                {['Kod', 'Növ', 'Dəyər', 'Min. məbləğ', 'Limit / İstifadə', 'Bitmə tarixi', 'Status', ''].map((h, index, headers) => (
+                  <th
+                    key={`${h || 'actions'}-${index}`}
+                    style={{ ...thStyle, textAlign: index === headers.length - 1 ? 'right' : 'left' }}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -252,11 +257,11 @@ export default function AdminPromoCodesPage() {
                       {p.isActive ? 'Aktiv' : 'Deaktiv'}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, display: 'flex', gap: '0.5rem' }}>
+                  <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button onClick={() => openEdit(p)} style={btnSmall}>Düzəlt</button>
                     <button
                       onClick={() => { if (confirm('Silinsin?')) deleteMut.mutate(p.id); }}
-                      style={{ ...btnSmall, color: '#dc2626', borderColor: '#fca5a5' }}
+                      style={{ ...btnSmall, marginLeft: '0.5rem', color: '#dc2626', borderColor: '#fca5a5' }}
                     >
                       Sil
                     </button>

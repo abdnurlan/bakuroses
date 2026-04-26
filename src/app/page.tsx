@@ -34,7 +34,7 @@ export default function HomePage() {
       <CategorySection />
 
       {/* Collection heading — stays inside max-width container */}
-      <section id="collection" className="section-shell collection-shell" aria-labelledby="collection-title" style={{ paddingBottom: '2rem' }}>
+      <section id="collection" className="section-shell collection-shell" aria-labelledby="collection-title">
         <RevealOnScroll variant="fade">
           <div className="section-heading">
             <p className="section-kicker">{t('collection_kicker')}</p>
@@ -45,7 +45,7 @@ export default function HomePage() {
       </section>
 
       {/* ProductGrid — full-width, outside section container */}
-      <div style={{ width: '100%', overflow: 'hidden', paddingBottom: '5rem' }}>
+      <div style={{ width: '100%', overflow: 'hidden', paddingBottom: '50px' }}>
         <ProductGrid />
       </div>
 

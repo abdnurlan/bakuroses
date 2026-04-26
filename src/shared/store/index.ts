@@ -30,13 +30,12 @@ interface AppStore {
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, qty: number) => void;
-  cartTotal: () => number;
 
   ui: UIState;
   setUI: (updates: Partial<UIState>) => void;
 }
 
-export const useAppStore = create<AppStore>((set, get) => ({
+export const useAppStore = create<AppStore>((set) => ({
   ai: {
     isGeneratingVideo:  false,
     isGeneratingImage:  false,
@@ -77,12 +76,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
               i.product.id === productId ? { ...i, quantity: qty } : i
             ),
     })),
-  cartTotal: () =>
-    get().cartItems.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0
-    ),
-
   ui: {
     isCartOpen:            false,
     isNavTransparent:      true,

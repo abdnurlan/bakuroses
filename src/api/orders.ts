@@ -20,7 +20,7 @@ export interface CreateOrderPayload {
 
 export interface OrderResponse {
   orderId: string;
-  trackingUrl?: string;
+  successUrl?: string;
   paymentUrl?: string;
 }
 

@@ -224,7 +224,6 @@ export const translations = {
     shop_clear_filters: 'Filterləri sıfırla',
     shop_no_results: 'Nəticə tapılmadı',
     shop_no_results_sub: 'Fərqli açar söz və ya kateqoriya ilə cəhd edin.',
-    shop_fallback_catalog: 'Canlı kataloq yüklənmədi, nümunə kolleksiya göstərilir.',
   },
 
   en: {
@@ -440,7 +439,6 @@ export const translations = {
     shop_clear_filters: 'Clear filters',
     shop_no_results: 'No results found',
     shop_no_results_sub: 'Try a different keyword or category.',
-    shop_fallback_catalog: 'Live catalog did not load, showing the sample collection.',
   },
 
   ru: {
@@ -656,7 +654,6 @@ export const translations = {
     shop_clear_filters: 'Сбросить фильтры',
     shop_no_results: 'Ничего не найдено',
     shop_no_results_sub: 'Попробуйте другое слово или категорию.',
-    shop_fallback_catalog: 'Живой каталог не загрузился, показана демо-коллекция.',
   },
 } as const;
 

@@ -18,8 +18,11 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   const overlayRef  = useRef<HTMLDivElement>(null);
   const prevPathRef = useRef<string | null>(null);
   const pathname    = usePathname();
+  const isAdmin     = pathname.startsWith('/admin');
 
   useEffect(() => {
+    if (isAdmin) return;
+
     const overlay = overlayRef.current;
     if (!overlay || prevPathRef.current === pathname) return;
     prevPathRef.current = pathname;
@@ -33,6 +36,10 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
       { scaleX: 0, transformOrigin: 'left center', duration: 0.7, ease: 'power3.inOut' }
     );
   }, [pathname]);
+
+  if (isAdmin) {
+    return <>{children}</>;
+  }
 
   return (
     <>

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { asyncHandler } from '../lib/asyncHandler';
 import { haversineDistance } from '../services/maps';
 import { adminGuard } from '../middleware/adminGuard';
 import { validate } from '../middleware/validate';
@@ -17,20 +18,24 @@ const ZoneSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-router.get('/', async (_req, res) => {
+const ZoneUpdateSchema = ZoneSchema.partial().refine((data) => Object.keys(data).length > 0, {
+  message: 'At least one field is required',
+});
+
+router.get('/', asyncHandler(async (_req, res) => {
   const zones = await prisma.zone.findMany({
     where: { isActive: true },
     orderBy: { radiusKm: 'asc' },
   });
   res.json(zones);
-});
+}));
 
-router.get('/all', adminGuard, async (_req, res) => {
+router.get('/all', adminGuard, asyncHandler(async (_req, res) => {
   const zones = await prisma.zone.findMany({ orderBy: { radiusKm: 'asc' } });
   res.json(zones);
-});
+}));
 
-router.post('/check-coverage', async (req, res) => {
+router.post('/check-coverage', asyncHandler(async (req, res) => {
   const { lat, lng } = req.body as { lat: number; lng: number };
   if (typeof lat !== 'number' || typeof lng !== 'number') {
     res.status(400).json({ error: 'lat and lng are required numbers' });
@@ -61,24 +66,27 @@ router.post('/check-coverage', async (req, res) => {
     distanceKm: parseFloat(actualDistance.toFixed(2)),
     deliveryFee: matchedZone.deliveryFee,
   });
-});
+}));
 
-router.post('/', adminGuard, validate(ZoneSchema), async (req, res) => {
+router.post('/', adminGuard, validate(ZoneSchema), asyncHandler(async (req, res) => {
   const zone = await prisma.zone.create({ data: req.body });
   res.status(201).json(zone);
-});
+}));
 
-router.put('/:id', adminGuard, async (req, res) => {
+router.put('/:id', adminGuard, validate(ZoneUpdateSchema), asyncHandler(async (req, res) => {
   const zone = await prisma.zone.update({
     where: { id: req.params.id },
     data: req.body,
   });
   res.json(zone);
-});
+}));
 
-router.delete('/:id', adminGuard, async (req, res) => {
-  await prisma.zone.delete({ where: { id: req.params.id } });
+router.delete('/:id', adminGuard, asyncHandler(async (req, res) => {
+  await prisma.zone.update({
+    where: { id: req.params.id },
+    data: { isActive: false },
+  });
   res.json({ ok: true });
-});
+}));
 
 export default router;

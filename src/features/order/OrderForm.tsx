@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, CaretDown, CreditCard, Money, ShoppingBagOpen, SpinnerGap, Tag } from '@phosphor-icons/react';
 import { MapPicker } from './MapPicker';
 import { checkCoverage, type Zone } from '@/api/zones';
 import { createOrder, type OrderItem } from '@/api/orders';
@@ -29,6 +32,32 @@ export function OrderForm() {
   const [promoInput, setPromoInput] = useState('');
   const [promoResult, setPromoResult] = useState<PromoValidateResult | null>(null);
   const [promoLoading, setPromoLoading] = useState(false);
+  const [promoExpanded, setPromoExpanded] = useState(false);
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [stagedPin, setStagedPin] = useState<{ lat: number; lng: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (mapModalOpen) {
+      const y = window.scrollY;
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${y}px`;
+      document.body.style.width = '100%';
+      return () => {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        window.scrollTo(0, y);
+      };
+    }
+  }, [mapModalOpen, mounted]);
 
   const mutation = useMutation({
     mutationFn: createOrder,
@@ -37,7 +66,7 @@ export function OrderForm() {
         window.location.href = data.paymentUrl;
       } else {
         cartItems.forEach((item) => clearCart(item.product.id));
-        router.push(`/track/${data.orderId}`);
+        router.push(`/success?order_id=${data.orderId}`);
       }
     },
     onError: () => {
@@ -49,9 +78,14 @@ export function OrderForm() {
 
   const handleApplyPromo = async () => {
     if (!promoInput.trim()) return;
+    const items: OrderItem[] = cartItems.map((item) => ({
+      productId: item.product.id,
+      quantity: item.quantity,
+    }));
+    if (items.length === 0) return;
     setPromoLoading(true);
     try {
-      const result = await validatePromoCode(promoInput.trim(), cartSubtotal);
+      const result = await validatePromoCode(promoInput.trim(), items);
       setPromoResult(result);
       toast.success(`Endirim tətbiq edildi: -${result.discountAmount.toFixed(2)} ₼`);
     } catch (err: unknown) {
@@ -65,6 +99,7 @@ export function OrderForm() {
 
   const handleMapPin = async (lat: number, lng: number) => {
     setForm((f) => ({ ...f, lat, lng }));
+    setStagedPin(null);
     setCoverageLoading(true);
     try {
       const result = await checkCoverage(lat, lng);
@@ -129,34 +164,122 @@ export function OrderForm() {
   };
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 1rem' }}>
-      <h2
-        className="font-display"
-        style={{ fontSize: '1.75rem', fontWeight: 600, marginBottom: '1.5rem', color: 'var(--color-text)' }}
+    <div className="order-layout">
+      <section
+        className="order-form-panel"
+        aria-labelledby="order-title"
+        data-lenis-prevent
+        style={{ position: 'relative' }}
       >
-        Sifariş ver
-      </h2>
+        <div className="order-form-inner">
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+            <p className="order-kicker" style={{ marginBottom: 0 }}>Online sifariş</p>
+            <button
+              onClick={() => router.back()}
+              aria-label="Geri qayıt"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 36, height: 36, borderRadius: '50%',
+                border: '1px solid var(--color-border)',
+                background: 'rgba(255,255,255,0.8)',
+                cursor: 'pointer', flexShrink: 0,
+                color: 'var(--color-text-muted)',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+          <h1 id="order-title" className="font-display order-title">
+            Sifariş ver
+          </h1>
 
-      <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginBottom: '1rem', letterSpacing: '0.06em' }}>
-        Çatdırılma ünvanınızı xəritədən seçin
-      </p>
+          <p className="order-copy">
+            Məlumatları doldurun və xəritədə çatdırılma nöqtəsini seçin.
+          </p>
 
-      <MapPicker onPin={handleMapPin} />
+          {/* ── Mobile map thumbnail — only on small screens ── */}
+          <div className="order-mobile-map-trigger">
+            <button
+              type="button"
+              onClick={() => setMapModalOpen(true)}
+              className="order-mobile-map-btn"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M9 1.5C6.1 1.5 3.75 3.85 3.75 6.75c0 4.22 5.25 9.75 5.25 9.75s5.25-5.53 5.25-9.75C14.25 3.85 11.9 1.5 9 1.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+                <circle cx="9" cy="6.75" r="1.75" stroke="currentColor" strokeWidth="1.4"/>
+              </svg>
+              {zone ? `${zone.name} seçildi — dəyişdir` : 'Xəritədən ünvan seç'}
+            </button>
+            {zone && (
+              <span className="order-mobile-zone-badge">
+                {zone.deliveryFee.toFixed(0)} ₼ çatdırılma
+              </span>
+            )}
+          </div>
 
-      {coverageLoading && (
-        <p style={{ fontSize: '0.82rem', color: 'var(--color-text-soft)', marginTop: '0.5rem' }}>
-          Zona yoxlanılır…
-        </p>
-      )}
+          {/* ── Mobile map fullscreen modal ── */}
+          {mounted && mapModalOpen && createPortal(
+            <div className="order-map-modal-overlay">
+              <div className="order-map-modal">
+                <div className="order-map-modal-header">
+                  <span>Çatdırılma ünvanını seç</span>
+                  <button
+                    onClick={() => { setMapModalOpen(false); setStagedPin(null); }}
+                    className="order-map-modal-close"
+                    aria-label="Bağla"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                </div>
 
-      {zone && (
-        <p style={{ fontSize: '0.82rem', color: '#8b9770', marginTop: '0.5rem', fontWeight: 600 }}>
-          ✅ {zone.name} — çatdırılma mövcuddur
-        </p>
-      )}
+                <div className="order-map-modal-body">
+                  <MapPicker
+                    className="order-map-modal-map"
+                    onPin={handleMapPin}
+                    confirmMode
+                    onStage={(lat, lng) => setStagedPin({ lat, lng })}
+                  />
+                </div>
 
-      {zone && (
-        <div style={{ marginTop: '1.5rem' }}>
+                <div className="order-map-modal-footer">
+                  <p className="order-map-modal-hint">
+                    {stagedPin ? 'Pin seçildi — aşağıdan təsdiqləyin' : 'Xəritəyə toxunub ünvan seçin'}
+                  </p>
+                  <button
+                    className="order-map-modal-confirm"
+                    disabled={!stagedPin}
+                    onClick={() => {
+                      if (stagedPin) {
+                        handleMapPin(stagedPin.lat, stagedPin.lng);
+                        setMapModalOpen(false);
+                      }
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <path d="M3 9.5l4 4 8-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Ünvanı təsdiqlə
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+
+          <div className="order-map-status">
+            {coverageLoading && <span>Zona yoxlanılır...</span>}
+            {!coverageLoading && zone && (
+              <span>
+                {zone.name} - çatdırılma mövcuddur · {zone.deliveryFee.toFixed(0)} ₼
+              </span>
+            )}
+            {!coverageLoading && !zone && <span>Xəritədən çatdırılma ünvanı seçilməyib</span>}
+          </div>
+
           <input
             placeholder="Adınız"
             value={form.name}
@@ -203,54 +326,62 @@ export function OrderForm() {
                 </div>
               ))}
 
-              {/* Promo code input */}
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.85rem' }}>
-                <input
-                  placeholder="Promokod"
-                  value={promoInput}
-                  onChange={(e) => {
-                    setPromoInput(e.target.value.toUpperCase());
-                    if (promoResult) setPromoResult(null);
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '0.6rem 0.85rem',
-                    borderRadius: 10,
-                    border: `1px solid ${promoResult ? 'rgba(139,151,112,0.6)' : 'rgba(139,151,112,0.22)'}`,
-                    background: 'rgba(255,255,255,0.9)',
-                    fontSize: '0.875rem',
-                    fontFamily: 'var(--font-body)',
-                    outline: 'none',
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={handleApplyPromo}
-                  disabled={promoLoading || !promoInput.trim()}
-                  style={{
-                    padding: '0.6rem 1rem',
-                    borderRadius: 10,
-                    border: 'none',
-                    background: promoLoading || !promoInput.trim() ? 'rgba(139,151,112,0.3)' : 'rgba(139,151,112,0.85)',
-                    color: '#fff',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.08em',
-                    cursor: promoLoading || !promoInput.trim() ? 'not-allowed' : 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {promoLoading ? '…' : 'Tətbiq et'}
-                </button>
-              </div>
+              {/* Promo trigger — always visible, outside the collapsible box */}
+              <button
+                type="button"
+                className="order-promo-trigger"
+                aria-expanded={promoExpanded}
+                aria-controls="order-promo-fields"
+                onClick={() => setPromoExpanded((open) => !open)}
+              >
+                <span className="order-promo-trigger-icon">
+                  <Tag size={16} weight="duotone" />
+                </span>
+                <span>{promoResult ? `Promokod tətbiq edildi: ${promoInput}` : 'Promokod istifadə etmək istəyirəm'}</span>
+                <CaretDown size={15} weight="bold" className="order-promo-caret" data-open={promoExpanded ? 'true' : undefined} />
+              </button>
 
-              {promoResult && (
-                <div style={{ marginTop: '0.5rem', fontSize: '0.82rem', color: '#8b9770', fontWeight: 600 }}>
-                  ✅ Endirim: -{promoResult.discountAmount.toFixed(2)} ₼
-                </div>
-              )}
+              {/* Collapsible promo box — animates height so layout never jumps */}
+              <AnimatePresence initial={false}>
+                {promoExpanded && (
+                  <motion.div
+                    id="order-promo-fields"
+                    initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                    animate={{ height: 'auto', opacity: 1, marginTop: '0.6rem' }}
+                    exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                    transition={{ duration: 0.26, ease: [0.33, 1, 0.68, 1] }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div className="order-promo order-promo-fields">
+                      <div className="order-promo-row">
+                        <input
+                          placeholder="Promokod"
+                          value={promoInput}
+                          onChange={(e) => {
+                            setPromoInput(e.target.value.toUpperCase());
+                            if (promoResult) setPromoResult(null);
+                          }}
+                          className="order-promo-input"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyPromo}
+                          disabled={promoLoading || !promoInput.trim()}
+                          className="order-promo-apply"
+                        >
+                          {promoLoading ? 'Yoxlanır' : 'Tətbiq et'}
+                        </button>
+                      </div>
+
+                      {promoResult && (
+                        <div className="order-promo-success">
+                          Endirim: -{promoResult.discountAmount.toFixed(2)} ₼
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', fontWeight: 700, fontSize: '1rem' }}>
                 <span>Cəmi</span>
@@ -267,67 +398,52 @@ export function OrderForm() {
             </p>
           )}
 
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          <div className="order-payment-options">
             <button
+              type="button"
               onClick={() => setForm((f) => ({ ...f, paymentType: 'cash' }))}
-              style={{
-                flex: 1,
-                padding: '0.85rem',
-                borderRadius: 12,
-                border: `2px solid ${form.paymentType === 'cash' ? 'var(--color-accent-strong)' : 'rgba(139,151,112,0.22)'}`,
-                background: form.paymentType === 'cash' ? 'rgba(207,111,148,0.08)' : 'transparent',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                color: 'var(--color-text)',
-                transition: 'all 0.2s',
-              }}
+              className="order-payment-option"
+              data-active={form.paymentType === 'cash' ? 'true' : undefined}
             >
-              💵 Nağd ödəniş
+              <span className="order-payment-icon"><Money size={20} weight="duotone" /></span>
+              <span>Nağd ödəniş</span>
             </button>
             <button
+              type="button"
               onClick={() => setForm((f) => ({ ...f, paymentType: 'epoint' }))}
-              style={{
-                flex: 1,
-                padding: '0.85rem',
-                borderRadius: 12,
-                border: `2px solid ${form.paymentType === 'epoint' ? 'var(--color-accent-strong)' : 'rgba(139,151,112,0.22)'}`,
-                background: form.paymentType === 'epoint' ? 'rgba(207,111,148,0.08)' : 'transparent',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                color: 'var(--color-text)',
-                transition: 'all 0.2s',
-              }}
+              className="order-payment-option"
+              data-active={form.paymentType === 'epoint' ? 'true' : undefined}
             >
-              💳 Online ödəniş (Epoint)
+              <span className="order-payment-icon"><CreditCard size={20} weight="duotone" /></span>
+              <span>Online ödəniş</span>
             </button>
           </div>
 
           <button
             onClick={handleSubmit}
             disabled={mutation.isPending || cartItems.length === 0}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              borderRadius: 12,
-              border: 'none',
-              background: mutation.isPending || cartItems.length === 0
-                ? 'rgba(139,151,112,0.35)'
-                : 'var(--color-accent-strong)',
-              color: '#fff',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              cursor: mutation.isPending || cartItems.length === 0 ? 'not-allowed' : 'pointer',
-              transition: 'background 0.2s',
-            }}
+            className="order-submit-btn"
+            data-disabled={mutation.isPending || cartItems.length === 0 ? 'true' : undefined}
           >
-            {mutation.isPending ? 'Sifariş verilir…' : 'Sifariş ver'}
+            {mutation.isPending ? (
+              <>
+                <SpinnerGap size={19} weight="bold" style={{ animation: 'spin 0.9s linear infinite' }} />
+                Sifariş verilir…
+              </>
+            ) : (
+              <>
+                <ShoppingBagOpen size={20} weight="duotone" />
+                Sifariş ver
+                <ArrowRight size={17} weight="bold" className="order-submit-arrow" />
+              </>
+            )}
           </button>
         </div>
-      )}
+      </section>
+
+      <section className="order-map-panel" aria-label="Çatdırılma ünvanı xəritəsi">
+        <MapPicker className="order-map" onPin={handleMapPin} />
+      </section>
     </div>
   );
 }

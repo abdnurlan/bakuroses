@@ -1,23 +1,49 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
+import { asyncHandler } from '../lib/asyncHandler';
 import { adminGuard } from '../middleware/adminGuard';
+import {
+  clearAdminSessionCookie,
+  createAdminSessionToken,
+  hasAdminSession,
+  setAdminSessionCookie,
+  verifyAdminPassword,
+} from '../services/adminSession';
 
 const router = Router();
 
+router.post('/login', (req, res) => {
+  const { password } = req.body as { password?: string };
+  if (!password || !verifyAdminPassword(password)) {
+    res.status(401).json({ error: 'Invalid credentials' });
+    return;
+  }
+
+  setAdminSessionCookie(res, createAdminSessionToken());
+  res.json({ ok: true });
+});
+
+router.post('/logout', (_req, res) => {
+  clearAdminSessionCookie(res);
+  res.json({ ok: true });
+});
+
+router.get('/me', (req, res) => {
+  res.json({ authed: hasAdminSession(req) });
+});
+
 router.use(adminGuard);
 
-router.get('/dashboard', async (_req, res) => {
+router.get('/dashboard', asyncHandler(async (_req, res) => {
   const [
     totalOrders,
-    activeDeliveries,
     revenueResult,
     recentOrders,
   ] = await Promise.all([
     prisma.order.count(),
-    prisma.delivery.count(),
     prisma.order.aggregate({
       _sum: { total: true },
-      where: { status: { in: ['CONFIRMED', 'PREPARING', 'ON_THE_WAY', 'DELIVERED'] } },
+      where: { status: 'CONFIRMED' },
     }),
     prisma.order.findMany({
       take: 10,
@@ -28,10 +54,9 @@ router.get('/dashboard', async (_req, res) => {
 
   res.json({
     totalOrders,
-    activeDeliveries,
     totalRevenue: revenueResult._sum.total ?? 0,
     recentOrders,
   });
-});
+}));
 
 export default router;

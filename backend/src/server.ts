@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import http from 'http';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -45,6 +46,7 @@ app.use(
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
 app.use('/api/zones', zonesRouter);
 app.use('/api/orders', ordersRouter);
@@ -57,6 +59,13 @@ app.use('/api/categories', categoriesRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  void next;
+  console.error(err);
+  if (res.headersSent) return;
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 const PORT = Number(process.env.PORT ?? 3002);

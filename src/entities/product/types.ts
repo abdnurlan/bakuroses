@@ -9,5 +9,6 @@ export interface Product {
   galleryImages?: string[];
   category: string;
   categorySlug?: string;
+  isActive?: boolean;
   aiPrompt?: string;
 }

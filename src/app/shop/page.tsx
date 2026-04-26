@@ -1,20 +1,20 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MagnifyingGlass, SlidersHorizontal, X, CaretDown, CaretUp,
+  CaretDown, CaretLeft, CaretUp, MagnifyingGlass, SlidersHorizontal, X,
 } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 
 import { ProductCard } from '@/features/shop/ProductCard';
 import { fetchProducts, fetchCategories, type Category } from '@/api/categories';
-import { SEED_PRODUCTS } from '@/features/shop/products.data';
 import { useLang } from '@/providers/LanguageProvider';
 import { SiteFooter } from '@/features/shop/SiteFooter';
 import { AnimatedTitleReveal } from '@/shared/ui/AnimatedTitleReveal';
-import type { Product } from '@/entities/product/types';
+import { useAppStore } from '@/shared/store';
 
 type SortOption = 'default' | 'price_asc' | 'price_desc' | 'newest';
 
@@ -24,83 +24,6 @@ const PRICE_RANGES = [
   { label: '100 – 200 ₼', min: 100, max: 200 },
   { label: '200+ ₼', min: 200, max: undefined },
 ] as const;
-
-const FALLBACK_CATEGORY_NAMES: Record<string, string> = {
-  'premium-kompozisiyalar': 'Premium Kompozisiya və Buketlər',
-  'qarisiq-buketler': 'Qarışıq Buketlər',
-  'sebet-qutu-kompozisiyalar': 'Səbət və Qutuda Kompozisiyalar',
-  'yeni-dogulmus': 'Yeni Doğulmuş Uşaq Çıxışı',
-  'toy-ad-guunu-nisar-dekor': 'Toy, Ad günü, Nişan və Nigar Dekorları',
-  'yeni-il-kompozisiyalari': 'Yeni İl Kompozisiyaları',
-  'mono-buketler': 'Mono Buketlər',
-  'gelin-buketleri': 'Gəlin Buketləri',
-  novruz: 'Novruz',
-  art: 'Art',
-};
-
-function categoryKey(product: Product) {
-  return product.categorySlug ?? product.category;
-}
-
-function buildCategoriesFromProducts(products: Product[]): Category[] {
-  const map = new Map<string, Category>();
-
-  products.forEach((product, index) => {
-    const slug = categoryKey(product);
-    const existing = map.get(slug);
-
-    if (existing) {
-      existing._count = { products: (existing._count?.products ?? 0) + 1 };
-      return;
-    }
-
-    map.set(slug, {
-      id: `fallback-${slug}`,
-      slug,
-      name: FALLBACK_CATEGORY_NAMES[slug] ?? product.category,
-      sortOrder: index,
-      isActive: true,
-      _count: { products: 1 },
-    });
-  });
-
-  return Array.from(map.values());
-}
-
-function filterProducts(
-  products: Product[],
-  filters: {
-    search: string;
-    category: string;
-    minPrice?: number;
-    maxPrice?: number;
-    sort: SortOption;
-  },
-) {
-  const search = filters.search.trim().toLowerCase();
-
-  const filtered = products.filter((product) => {
-    const matchesSearch = !search
-      || product.name.toLowerCase().includes(search)
-      || product.subtitle?.toLowerCase().includes(search)
-      || product.category.toLowerCase().includes(search);
-
-    const matchesCategory = !filters.category
-      || product.categorySlug === filters.category
-      || product.category === filters.category;
-
-    const matchesMin = filters.minPrice == null || product.price >= filters.minPrice;
-    const matchesMax = filters.maxPrice == null || product.price <= filters.maxPrice;
-
-    return matchesSearch && matchesCategory && matchesMin && matchesMax;
-  });
-
-  return [...filtered].sort((a, b) => {
-    if (filters.sort === 'price_asc') return a.price - b.price;
-    if (filters.sort === 'price_desc') return b.price - a.price;
-    return 0;
-  });
-}
 
 function FilterAccordion({
   title, children, defaultOpen = true,
@@ -148,6 +71,10 @@ function ShopInner() {
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  const cartItems = useAppStore((s) => s.cartItems);
+  const setUI = useAppStore((s) => s.setUI);
+  const cartCount = cartItems.reduce((n, i) => n + i.quantity, 0);
+
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(search), 360);
     return () => clearTimeout(id);
@@ -176,34 +103,25 @@ function ShopInner() {
   const categoriesQuery = useQuery<Category[]>({
     queryKey: ['categories'],
     queryFn: fetchCategories,
-    placeholderData: () => buildCategoriesFromProducts(SEED_PRODUCTS),
     staleTime: 5 * 60 * 1000,
   });
 
-  const productsQuery = useQuery<Product[]>({
-    queryKey: ['products'],
-    queryFn: () => fetchProducts(),
-    placeholderData: SEED_PRODUCTS,
-    staleTime: 30_000,
-  });
-
-  const productSource = productsQuery.data?.length ? productsQuery.data : SEED_PRODUCTS;
-  const categories = categoriesQuery.data?.length
-    ? categoriesQuery.data
-    : buildCategoriesFromProducts(productSource);
-  const products = useMemo(
-    () => filterProducts(productSource, {
-      search: debouncedSearch,
-      category: activeCategory,
+  const productsQuery = useQuery({
+    queryKey: ['products', activeCategory, debouncedSearch, priceMin, priceMax, sort],
+    queryFn: () => fetchProducts({
+      category: activeCategory || undefined,
+      search: debouncedSearch || undefined,
       minPrice: priceMin,
       maxPrice: priceMax,
       sort,
     }),
-    [activeCategory, debouncedSearch, priceMax, priceMin, productSource, sort],
-  );
-  const isLoading = productsQuery.isLoading && !products.length;
-  const isFallbackCatalog = !isLoading
-    && (productsQuery.isError || categoriesQuery.isError || !productsQuery.data?.length);
+    staleTime: 30_000,
+  });
+
+  const categories = categoriesQuery.data ?? [];
+  const products = productsQuery.data ?? [];
+  const isLoading = productsQuery.isLoading;
+  const totalCategoryCount = categories.reduce((sum, cat) => sum + (cat._count?.products ?? 0), 0);
 
   const hasFilters = !!(activeCategory || debouncedSearch || priceMin != null || priceMax != null || sort !== 'default');
 
@@ -268,7 +186,7 @@ function ShopInner() {
               onClick={() => setActiveCategory('')}
             >
               {t('shop_filter_all')}
-              <span className="sf-cat-count">{productSource.length || ''}</span>
+              <span className="sf-cat-count">{totalCategoryCount || ''}</span>
             </button>
           </li>
           {categories.map(cat => (
@@ -358,20 +276,41 @@ function ShopInner() {
 
           {/* Header */}
           <div className="shop-main-head">
-            <div>
-              <p className="section-kicker" style={{ marginBottom: '0.35rem' }}>{t('collection_kicker')}</p>
-              <AnimatedTitleReveal as="h1" className="shop-title" text={t('shop_title')} />
+            <div className="shop-head-copy">
+              <Link href="/" className="shop-home-link" aria-label="Ana səhifəyə qayıt">
+                <CaretLeft size={15} weight="bold" />
+                <span>Geri</span>
+              </Link>
+              <div>
+                <p className="section-kicker" style={{ marginBottom: '0.35rem' }}>{t('collection_kicker')}</p>
+                <AnimatedTitleReveal as="h1" className="shop-title" text={t('shop_title')} />
+              </div>
             </div>
 
-            {/* Mobile filter toggle */}
-            <button
-              className={`shop-mobile-filter-btn ${mobileSidebarOpen ? 'is-active' : ''}`}
-              onClick={() => setMobileSidebarOpen(v => !v)}
-            >
-              <SlidersHorizontal size={16} weight="bold" />
-              {t('shop_filters')}
-              {hasFilters && <span className="shop-filter-dot" />}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {/* Mobile filter toggle */}
+              <button
+                className={`shop-mobile-filter-btn ${mobileSidebarOpen ? 'is-active' : ''}`}
+                onClick={() => setMobileSidebarOpen(v => !v)}
+              >
+                <SlidersHorizontal size={16} weight="bold" />
+                {t('shop_filters')}
+                {hasFilters && <span className="shop-filter-dot" />}
+              </button>
+
+              {/* Cart button */}
+              <button
+                className="shop-cart-btn"
+                onClick={() => setUI({ isCartOpen: true })}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
+                Səbətə keç
+                {cartCount > 0 && <span className="shop-cart-btn-badge">{cartCount}</span>}
+              </button>
+            </div>
           </div>
 
           {/* Mobile sidebar drawer */}
@@ -394,10 +333,6 @@ function ShopInner() {
             <span className="shop-result-count">
               {isLoading ? '…' : t('shop_result_count').replace('{n}', String(products.length))}
             </span>
-
-            {isFallbackCatalog && (
-              <span className="shop-status-note">{t('shop_fallback_catalog')}</span>
-            )}
 
             {/* Active pills */}
             <div className="shop-active-filters">

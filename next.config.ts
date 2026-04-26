@@ -39,6 +39,10 @@ const nextConfig: NextConfig = {
         destination: `${BACKEND_URL}/api/products/:path*`,
       },
       {
+        source: '/uploads/:path*',
+        destination: `${BACKEND_URL}/uploads/:path*`,
+      },
+      {
         source: '/api/categories/:path*',
         destination: `${BACKEND_URL}/api/categories/:path*`,
       },

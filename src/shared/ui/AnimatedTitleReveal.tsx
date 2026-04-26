@@ -1,87 +1,82 @@
 'use client';
 
-import { ElementType, useRef } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useGSAP } from '@gsap/react';
-import { DURATION } from '@/lib/animation-tokens';
+import { motion, useReducedMotion } from 'framer-motion';
+import { DURATION, EASE } from '@/lib/animation-tokens';
 
-gsap.registerPlugin(ScrollTrigger);
+type TitleTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
-type AnimatedTitleRevealProps<T extends ElementType> = {
-  as?: T;
+type AnimatedTitleRevealProps = {
+  as?: TitleTag;
   className?: string;
   delay?: number;
   id?: string;
   text: string;
 };
 
-export function AnimatedTitleReveal<T extends ElementType = 'h2'>({
+export function AnimatedTitleReveal({
   as,
   className,
   delay = 0,
   id,
   text,
-}: AnimatedTitleRevealProps<T>) {
-  const Component = (as ?? 'h2') as ElementType;
-  const ref = useRef<HTMLElement>(null);
-
-  useGSAP(
-    () => {
-      const el = ref.current;
-      if (!el) return;
-
-      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (prefersReduced) return;
-
-      const chars = el.querySelectorAll<HTMLElement>('[data-char]');
-      const wrappers = el.querySelectorAll<HTMLElement>('[data-char-wrap]');
-
-      gsap.set(wrappers, { overflow: 'hidden' });
-      gsap.set(chars, {
-        yPercent: 115,
-        opacity: 0,
-        rotateZ: 1.5,
-        filter: 'blur(6px)',
-      });
-
-      gsap.to(chars, {
-        yPercent: 0,
-        opacity: 1,
-        rotateZ: 0,
-        filter: 'blur(0px)',
-        duration: DURATION.normal,
-        ease: 'power3.out',
-        stagger: 0.018,
-        delay,
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 88%',
-          toggleActions: 'play none none none',
-        },
-      });
-    },
-    { scope: ref, dependencies: [text, delay] }
-  );
+}: AnimatedTitleRevealProps) {
+  const Component = as ?? 'h2';
+  const shouldReduceMotion = useReducedMotion();
+  const lines = text.split('\n');
 
   return (
-    <Component ref={ref} id={id} className={className} aria-label={text}>
-      <span aria-hidden="true">
-        {Array.from(text).map((char, index) => (
-          <span
-            key={`${char}-${index}`}
-            data-char-wrap
-            style={{ display: 'inline-block', verticalAlign: 'top' }}
-          >
-            <span
-              data-char
-              style={{ display: 'inline-block', willChange: 'transform, opacity, filter' }}
-            >
-              {char === ' ' ? '\u00A0' : char}
-            </span>
+    <Component id={id} className={className} aria-label={text}>
+      <motion.span
+        aria-hidden="true"
+        initial={shouldReduceMotion ? false : 'hidden'}
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.35, margin: '0px 0px -10% 0px' }}
+        transition={{ staggerChildren: 0.018, delayChildren: delay }}
+        style={{ display: 'inline-block' }}
+      >
+        {lines.map((line, lineIndex) => (
+          <span key={`${line}-${lineIndex}`} style={{ display: 'block' }}>
+            {Array.from(line).map((char, charIndex) => (
+              <span
+                key={`${char}-${lineIndex}-${charIndex}`}
+                data-char-wrap
+                style={{
+                  display: 'inline-block',
+                  overflow: 'hidden',
+                  paddingBottom: '0.14em',
+                  marginBottom: '-0.14em',
+                  verticalAlign: 'baseline',
+                }}
+              >
+                <motion.span
+                  data-char
+                  variants={{
+                    hidden: {
+                      y: '115%',
+                      opacity: 0,
+                      rotateZ: 1.5,
+                      filter: 'blur(6px)',
+                    },
+                    visible: {
+                      y: '0%',
+                      opacity: 1,
+                      rotateZ: 0,
+                      filter: 'blur(0px)',
+                    },
+                  }}
+                  transition={{
+                    duration: DURATION.normal,
+                    ease: EASE.smooth,
+                  }}
+                  style={{ display: 'inline-block', willChange: 'transform, opacity, filter' }}
+                >
+                  {char === ' ' ? '\u00A0' : char}
+                </motion.span>
+              </span>
+            ))}
           </span>
         ))}
-      </span>
+      </motion.span>
     </Component>
   );
 }

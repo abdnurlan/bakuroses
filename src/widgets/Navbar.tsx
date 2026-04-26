@@ -1,17 +1,32 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { ChatCircleText, FlowerTulip, ShoppingCart, List, UserFocus, X } from '@phosphor-icons/react';
-import { AnimatePresence, motion, type Transition } from 'framer-motion';
+import { ChatCircleText, FlowerTulip, List, UserFocus, X } from '@phosphor-icons/react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { CartButton } from '@/features/cart/CartButton';
 import { getLenis } from '@/shared/lib/lenis';
 import { useHeaderCondensed } from '@/hooks/useHeaderCondensed';
 import { useLang } from '@/providers/LanguageProvider';
 import { type Locale } from '@/lib/i18n';
 
-const spring: Transition = { type: 'spring', stiffness: 90, damping: 18 };
+let anchorScrollId = 0;
+
+const SECTION_ROUTES: Record<string, string> = {
+  '/about': 'about',
+  '/testimonials': 'testimonials',
+};
+
+function easeInOutCubic(t: number) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function getAnchorScrollDuration(distance: number) {
+  const viewport = Math.max(window.innerHeight, 1);
+  const screens = distance / viewport;
+  return Math.min(Math.max(1.15 + screens * 0.42, 1.25), 2.8);
+}
 
 const LOCALES: { code: Locale; label: string; name: string }[] = [
   { code: 'az', label: 'AZ', name: 'Azərbaycan' },
@@ -28,16 +43,35 @@ function NavLink({ label, href, icon, onNavigate, mobile }: {
 }) {
   const pathname = usePathname();
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (pathname === '/' && href.includes('#')) {
-      const hash = href.split('#')[1];
-      if (!hash) return;
-      const target = document.getElementById(hash);
-      if (!target) return;
-      e.preventDefault();
-      const navEl = document.querySelector('.bk-navbar-wrap') as HTMLElement | null;
-      const navHeight = navEl ? navEl.offsetHeight : 80;
-      getLenis().scrollTo(target, { offset: -(navHeight + 16), duration: 1.35, easing: (t: number) => 1 - Math.pow(1 - t, 4) });
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    const sectionId = SECTION_ROUTES[href];
+
+    if (pathname === '/' && sectionId) {
+      const target = document.getElementById(sectionId);
+
+      if (target) {
+        event.preventDefault();
+
+        const navEl = document.querySelector('.bk-navbar-wrap') as HTMLElement | null;
+        const navHeight = navEl ? navEl.offsetHeight : 80;
+        const lenis = getLenis();
+        const scrollId = ++anchorScrollId;
+        const targetTop = target.getBoundingClientRect().top + window.scrollY - navHeight - 16;
+        const distance = Math.abs(targetTop - window.scrollY);
+
+        lenis.scrollTo(window.scrollY, { immediate: true, force: true });
+        requestAnimationFrame(() => {
+          if (scrollId !== anchorScrollId) return;
+
+          lenis.scrollTo(target, {
+            offset: -(navHeight + 16),
+            duration: getAnchorScrollDuration(distance),
+            easing: easeInOutCubic,
+            lock: true,
+            force: true,
+          });
+        });
+      }
     }
 
     onNavigate?.();
@@ -60,9 +94,9 @@ export function Navbar() {
   const { locale, setLocale, t } = useLang();
 
   const navLinks = [
-    { label: t('nav_about'), href: '/#about', icon: <UserFocus size={15} weight="duotone" /> },
     { label: t('nav_collection'), href: '/shop', icon: <FlowerTulip size={15} weight="duotone" /> },
-    { label: t('nav_testimonials'), href: '/#testimonials', icon: <ChatCircleText size={15} weight="duotone" /> },
+    { label: t('nav_about'), href: '/about', icon: <UserFocus size={15} weight="duotone" /> },
+    { label: t('nav_testimonials'), href: '/testimonials', icon: <ChatCircleText size={15} weight="duotone" /> },
   ];
 
   return (

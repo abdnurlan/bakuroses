@@ -37,8 +37,8 @@ const SOCIAL_LINKS = [
 
 const NAV_LINKS = [
   { labelKey: 'nav_collection', href: '/shop' },
-  { labelKey: 'nav_about', href: '/#about' },
-  { labelKey: 'nav_testimonials', href: '/#testimonials' },
+  { labelKey: 'nav_about', href: '/about' },
+  { labelKey: 'nav_testimonials', href: '/testimonials' },
 ] satisfies { labelKey: TranslationKey; href: string }[];
 
 const fadeUp = {

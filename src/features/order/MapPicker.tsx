@@ -1,15 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchZones, type Zone } from '@/api/zones';
 
 interface MapPickerProps {
+  className?: string;
   onPin: (lat: number, lng: number) => void;
+  confirmMode?: boolean;
+  onStage?: (lat: number, lng: number) => void;
 }
 
-export function MapPicker({ onPin }: MapPickerProps) {
-  const [MapComponents, setMapComponents] = useState<React.ComponentType<MapInnerProps> | null>(null);
+export function MapPicker({ className, onPin, confirmMode, onStage }: MapPickerProps) {
+  const [MapComponents, setMapComponents] = useState<ComponentType<MapInnerProps> | null>(null);
 
   const { data: zones = [] } = useQuery({
     queryKey: ['zones'],
@@ -25,9 +28,8 @@ export function MapPicker({ onPin }: MapPickerProps) {
   if (!MapComponents) {
     return (
       <div
+        className={className}
         style={{
-          height: 350,
-          borderRadius: 16,
           background: 'rgba(139,151,112,0.08)',
           display: 'flex',
           alignItems: 'center',
@@ -42,10 +44,13 @@ export function MapPicker({ onPin }: MapPickerProps) {
     );
   }
 
-  return <MapComponents zones={zones} onPin={onPin} />;
+  return <MapComponents className={className} zones={zones} onPin={onPin} confirmMode={confirmMode} onStage={onStage} />;
 }
 
 export interface MapInnerProps {
+  className?: string;
   zones: Zone[];
   onPin: (lat: number, lng: number) => void;
+  confirmMode?: boolean;
+  onStage?: (lat: number, lng: number) => void;
 }

@@ -11,18 +11,7 @@ import { RevealOnScroll } from '@/shared/ui/RevealOnScroll';
 import { AnimatedTitleReveal } from '@/shared/ui/AnimatedTitleReveal';
 import { useLang } from '@/providers/LanguageProvider';
 
-const FALLBACK_CATEGORIES: Category[] = [
-  { id: 'cat-mono', slug: 'mono-buketler', name: 'Mono Buketlər', description: 'Tək növ güldən hazırlanmış minimalist buketlər', imageUrl: 'https://images.unsplash.com/photo-1548094990-c16ca90f1f0d?w=900&q=80', sortOrder: 1, isActive: true },
-  { id: 'cat-qarisiq', slug: 'qarisiq-buketler', name: 'Qarışıq Buketlər', description: 'Müxtəlif güllərin uyğun birləşməsindən yaranan buketlər', imageUrl: 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?w=900&q=80', sortOrder: 2, isActive: true },
-  { id: 'cat-premium', slug: 'premium-kompozisiyalar', name: 'Premium Kompozisiya və Buketlər', description: 'Seçilmiş premium güllərdən hazırlanmış lüks kompozisiyalar', imageUrl: 'https://images.unsplash.com/photo-1468327768560-75b778cbb551?w=900&q=80', sortOrder: 3, isActive: true },
-  { id: 'cat-sebet', slug: 'sebet-qutu-kompozisiyalar', name: 'Səbət və Qutuda Kompozisiyalar', description: 'Səbət və xüsusi qutu içində təqdim olunan gül kompozisiyaları', imageUrl: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=900&q=80', sortOrder: 4, isActive: true },
-  { id: 'cat-gelin', slug: 'gelin-buketleri', name: 'Gəlin Buketləri', description: 'Toy mərasimləri üçün xüsusi hazırlanmış gəlin buketləri', imageUrl: 'https://images.unsplash.com/photo-1508610048659-a06b669e3321?w=900&q=80', sortOrder: 5, isActive: true },
-  { id: 'cat-art', slug: 'art', name: 'Art', description: 'Floristik sənət əsərləri — klassik çərçivədən kənara çıxan kompozisiyalar', imageUrl: 'https://images.unsplash.com/photo-1487530811015-780be3279e8f?w=900&q=80', sortOrder: 6, isActive: true },
-  { id: 'cat-newborn', slug: 'yeni-dogulmus', name: 'Yeni Doğulmuş Uşaq Çıxışı', description: 'Yeni doğulan uşaq üçün xüsusi hazırlanmış zərif buket və kompozisiyalar', imageUrl: 'https://images.unsplash.com/photo-1526397751294-331021109fbd?w=900&q=80', sortOrder: 7, isActive: true },
-  { id: 'cat-yeni-il', slug: 'yeni-il-kompozisiyalari', name: 'Yeni İl Kompozisiyaları', description: 'Yeni il və qış mövsümü üçün xüsusi dekorlu çiçək kompozisiyaları', imageUrl: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=900&q=80', sortOrder: 8, isActive: true },
-  { id: 'cat-novruz', slug: 'novruz', name: 'Novruz', description: 'Novruz bayramı ruhunu əks etdirən milli koloritli gül kompozisiyaları', imageUrl: 'https://images.unsplash.com/photo-1444930694458-01babf71870c?w=900&q=80', sortOrder: 9, isActive: true },
-  { id: 'cat-dekor', slug: 'toy-ad-guunu-nisar-dekor', name: 'Toy, Ad günü, Nişan və Nigar Dekorları', description: 'Xüsusi tədbirlər üçün tam məkan bəzəyi və dekor həlləri', imageUrl: 'https://images.unsplash.com/photo-1519378058457-4c29a0a2efac?w=900&q=80', sortOrder: 10, isActive: true },
-];
+const FALLBACK_CATEGORIES: Category[] = [];
 
 function CategoryCard({ cat, index }: { cat: Category; index: number }) {
   const wrapRef = useRef<HTMLDivElement>(null);

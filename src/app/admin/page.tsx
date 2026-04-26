@@ -5,7 +5,6 @@ import { api } from '@/lib/api';
 
 interface DashboardData {
   totalOrders: number;
-  activeDeliveries: number;
   totalRevenue: number;
   recentOrders: {
     id: string; code: string; customerName: string; customerPhone: string;
@@ -16,19 +15,13 @@ interface DashboardData {
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING_PAYMENT: '#f59e0b',
-  CONFIRMED: '#3b82f6',
-  PREPARING: '#8b5cf6',
-  ON_THE_WAY: '#f97316',
-  DELIVERED: '#22c55e',
+  CONFIRMED: '#22c55e',
   CANCELLED: '#ef4444',
 };
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING_PAYMENT: 'Ödəniş gözlənilir',
   CONFIRMED: 'Təsdiqləndi',
-  PREPARING: 'Hazırlanır',
-  ON_THE_WAY: 'Yolda',
-  DELIVERED: 'Çatdırıldı',
   CANCELLED: 'Ləğv edildi',
 };
 
@@ -36,9 +29,7 @@ export default function AdminDashboard() {
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ['admin-dashboard'],
     queryFn: async () => {
-      const res = await api.get('/api/admin/dashboard', {
-        headers: { 'x-admin-token': sessionStorage.getItem('admin_authed') === 'true' ? (process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? 'admin123') : '' },
-      });
+      const res = await api.get('/api/admin/dashboard');
       return res.data;
     },
     refetchInterval: 30_000,
@@ -48,7 +39,6 @@ export default function AdminDashboard() {
 
   const stats = [
     { label: 'Ümumi Sifariş', value: data?.totalOrders ?? 0, icon: '🛒' },
-    { label: 'Aktiv Çatdırılma', value: data?.activeDeliveries ?? 0, icon: '🛵' },
     { label: 'Ümumi Gəlir', value: `${(data?.totalRevenue ?? 0).toFixed(0)} ₼`, icon: '💰' },
   ];
 
@@ -58,7 +48,7 @@ export default function AdminDashboard() {
         Dashboard
       </h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
         {stats.map(s => (
           <div key={s.label} style={{
             background: '#fff', borderRadius: 16, padding: '1.5rem',
@@ -72,7 +62,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--color-border)', overflowX: 'auto' }}>
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Son Sifarişlər</h2>
         </div>

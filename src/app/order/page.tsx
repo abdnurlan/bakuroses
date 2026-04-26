@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function OrderPage() {
   return (
-    <main style={{ paddingTop: '6rem', paddingBottom: '4rem', minHeight: '100vh' }}>
+    <main className="order-page">
       <OrderForm />
     </main>
   );
