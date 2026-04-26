@@ -2623,11 +2623,10 @@ video {
 
 .hero-video-shell {
   position: relative;
-  min-height: 100dvh;
+  width: 100%;
+  height: 100dvh;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.5), transparent 32%),
-    linear-gradient(135deg, #f7d9e5 0%, #f5b7cc 42%, #dbe1d1 100%);
+  background: #111;
 }
 
 .hero-video-backdrop {

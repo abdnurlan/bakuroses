@@ -51,9 +51,14 @@ export function ProductGrid() {
     x.set(next);
   });
 
-  // Pointer handlers — allow full drag anywhere in viewport
+  const hasDragged = useRef(false);
+  const DRAG_THRESHOLD = 5;
+
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Let button clicks pass through untouched
+    if ((e.target as HTMLElement).closest('button')) return;
     isDragging.current = true;
+    hasDragged.current = false;
     dragStartX.current = e.clientX;
     dragStartVal.current = x.get();
     setCursor('grabbing');
@@ -63,8 +68,8 @@ export function ProductGrid() {
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current) return;
     const delta = e.clientX - dragStartX.current;
+    if (Math.abs(delta) > DRAG_THRESHOLD) hasDragged.current = true;
     let next = dragStartVal.current + delta;
-    // keep wrap logic consistent
     if (next > 0) next -= setWidth;
     if (Math.abs(next) >= setWidth) next += setWidth;
     x.set(next);
@@ -72,7 +77,8 @@ export function ProductGrid() {
 
   const onPointerUp = () => {
     isDragging.current = false;
-    lastTimeRef.current = null; // reset timer so no sudden jump on resume
+    hasDragged.current = false;
+    lastTimeRef.current = null;
     setCursor('grab');
   };
 

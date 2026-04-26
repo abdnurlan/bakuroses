@@ -11,9 +11,6 @@ import {
 } from './heroFrameConfig';
 import { useLang } from '@/providers/LanguageProvider';
 
-gsap.registerPlugin(ScrollTrigger);
-
-// Highlights every character of the word "güllər" (all locales) with pink
 const PINK_WORD_RE = /güllər|flowers|цветы/i;
 
 function HeroTitleLine({ text }: { text: string }) {
@@ -39,6 +36,8 @@ function HeroTitleLine({ text }: { text: string }) {
   );
 }
 
+gsap.registerPlugin(ScrollTrigger);
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -47,7 +46,6 @@ export function HeroCanvasScrub() {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Stable refs — never trigger re-renders
   const framesRef = useRef<(HTMLImageElement | null)[]>(
     Array.from({ length: HERO_FRAME_COUNT }, () => null),
   );
@@ -56,14 +54,11 @@ export function HeroCanvasScrub() {
   );
   const currentFrameRef = useRef(0);
   const loadedCountRef = useRef(0);
-  // Cache canvas size to avoid getBoundingClientRect on every draw
   const canvasSizeRef = useRef({ w: 0, h: 0 });
-  // rAF handle for batching draws
   const rafRef = useRef<number | null>(null);
   const pendingFrameRef = useRef<number | null>(null);
 
   const [isSequenceReady, setIsSequenceReady] = useState(false);
-  const [loadProgress, setLoadProgress] = useState(0);
   const { t } = useLang();
 
   // ── Canvas size sync ──────────────────────────────────────────────
@@ -81,7 +76,7 @@ export function HeroCanvasScrub() {
     }
   }, []);
 
-  // ── Draw a single frame — no resize check inside hot path ─────────
+  // ── Draw a single frame ───────────────────────────────────────────
   const drawFrame = useCallback((frameIndex: number): boolean => {
     const canvas = canvasRef.current;
     const image = framesRef.current[frameIndex];
@@ -116,11 +111,11 @@ export function HeroCanvasScrub() {
     [drawFrame],
   );
 
-  // ── Batched rAF draw — prevents multiple draws in one frame ───────
+  // ── Batched rAF draw ──────────────────────────────────────────────
   const scheduleRender = useCallback(
     (frameIndex: number) => {
       pendingFrameRef.current = frameIndex;
-      if (rafRef.current !== null) return; // already scheduled
+      if (rafRef.current !== null) return;
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
         const f = pendingFrameRef.current;
@@ -151,32 +146,21 @@ export function HeroCanvasScrub() {
         loadedRef.current[index] = true;
         loadedCountRef.current += 1;
 
-        setLoadProgress(
-          Math.round((loadedCountRef.current / HERO_FRAME_COUNT) * 100),
-        );
-
         if (index === 0) {
-          // Sync canvas size once first frame is known
           syncCanvasSize();
           setIsSequenceReady(true);
         }
 
-        // Re-draw if this frame is what we're currently showing
-        if (
-          index === currentFrameRef.current ||
-          loadedCountRef.current === 1
-        ) {
+        if (index === currentFrameRef.current || loadedCountRef.current === 1) {
           scheduleRender(currentFrameRef.current);
         }
       };
     };
 
-    // Eager: preload first N frames
     for (let i = 0; i < Math.min(HERO_FRAME_PRELOAD_COUNT, HERO_FRAME_COUNT); i++) {
       loadFrame(i);
     }
 
-    // Lazy: rest in idle time
     const loadRest = () => {
       for (let i = HERO_FRAME_PRELOAD_COUNT; i < HERO_FRAME_COUNT; i++) {
         loadFrame(i);
@@ -221,7 +205,6 @@ export function HeroCanvasScrub() {
       const section = sectionRef.current;
       if (!section || !isSequenceReady) return;
 
-      // Ensure canvas size is current before building tween
       syncCanvasSize();
 
       const playhead = { frame: 0 };
@@ -238,12 +221,10 @@ export function HeroCanvasScrub() {
         scrollTrigger: {
           trigger: section,
           start: 'top top',
-          // Scroll distance = 100vh feels natural for 120 frames
-          end: '+=120vh',
+          end: '+=200vh',
           pin: true,
-          // pinSpacing keeps layout intact so content below sits correctly
           pinSpacing: true,
-          scrub: 0.5,
+          scrub: 0.3,
           anticipatePin: 1,
           invalidateOnRefresh: true,
           onRefresh() {
@@ -262,13 +243,28 @@ export function HeroCanvasScrub() {
   );
 
   return (
-    <section ref={sectionRef} className="hero-video-shell">
-      <div className="hero-video-backdrop" />
-
+    <section
+      ref={sectionRef}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100dvh',
+        overflow: 'hidden',
+        background: '#0a0a0a',
+      }}
+    >
       <canvas
         ref={canvasRef}
-        className={`hero-video-media${isSequenceReady ? ' is-ready' : ''}`}
         aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          opacity: isSequenceReady ? 1 : 0,
+          transition: 'opacity 0.5s ease',
+        }}
       />
 
       <div className="hero-video-overlay" />
@@ -286,12 +282,6 @@ export function HeroCanvasScrub() {
         </h1>
         <p className="hero-video-subtitle">{t('hero_subtitle')}</p>
       </div>
-
-      {!isSequenceReady && (
-        <div className="hero-sequence-status">
-          {t('hero_loading')} {loadProgress}%
-        </div>
-      )}
     </section>
   );
 }
