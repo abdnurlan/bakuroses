@@ -792,6 +792,8 @@ body.has-premium-cursor textarea {
   }
 
   .order-form-panel {
+    height: auto;
+    min-height: 0;
     border-right: 0;
     overflow: visible;
   }
