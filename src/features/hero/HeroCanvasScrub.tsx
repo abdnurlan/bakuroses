@@ -90,7 +90,7 @@ export function HeroCanvasScrub() {
     const image = framesRef.current[frameIndex];
     if (!canvas || !image || !loadedRef.current[frameIndex]) return false;
 
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d');
     if (!ctx) return false;
 
     const { w, h } = canvasSizeRef.current;
@@ -224,11 +224,11 @@ export function HeroCanvasScrub() {
 
     const ro = new ResizeObserver(() => {
       syncCanvasSize();
-      scheduleRender(currentFrameRef.current);
+      renderNearest(currentFrameRef.current);
     });
     ro.observe(section);
     return () => ro.disconnect();
-  }, [syncCanvasSize, scheduleRender]);
+  }, [syncCanvasSize, renderNearest]);
 
   // ── hero-char-float — paused when hero scrolled out ──────────────
   useEffect(() => {
@@ -293,7 +293,10 @@ export function HeroCanvasScrub() {
         width: '100%',
         height: '100dvh',
         overflow: 'hidden',
-        background: '#0a0a0a',
+        backgroundColor: '#f4e7ec',
+        backgroundImage: `url(${getHeroFramePath(0)})`,
+        backgroundPosition: 'center',
+        backgroundSize: 'cover',
       }}
     >
       <canvas
@@ -307,6 +310,7 @@ export function HeroCanvasScrub() {
           display: 'block',
           opacity: isSequenceReady ? 1 : 0,
           transition: 'opacity 0.5s ease',
+          background: 'transparent',
         }}
       />
 

@@ -10,7 +10,7 @@ import { useLang } from '@/providers/LanguageProvider';
 
 const CARD_WIDTH = 320; // px
 const CARD_BLEED_X = 6; // px, so visible card gap stays 12px
-const SPEED = 100;       // px/sec
+const SPEED = 80;       // px/sec
 
 export function ProductGrid() {
   const { t } = useLang();

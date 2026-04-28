@@ -1,9 +1,12 @@
 'use client';
 
-import { createContext, useContext, useState } from 'react';
-import { type Locale, type TranslationKey, translations } from '@/lib/i18n';
+import { createContext, useContext, useEffect, useSyncExternalStore } from 'react';
+import { LANGUAGE_COOKIE, isLocale, type Locale, type TranslationKey, translations } from '@/lib/i18n';
 
-const STORAGE_KEY = 'br_lang';
+const STORAGE_KEY = LANGUAGE_COOKIE;
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+const listeners = new Set<() => void>();
+let currentLocale: Locale = 'az';
 
 interface LanguageContextValue {
   locale: Locale;
@@ -13,20 +16,69 @@ interface LanguageContextValue {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
-      if (stored && (stored === 'az' || stored === 'en' || stored === 'ru')) {
-        return stored;
-      }
-    }
-    return 'az';
-  });
+function readStoredLocale(fallback: Locale) {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return isLocale(stored) ? stored : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function persistLocale(l: Locale) {
+  try {
+    localStorage.setItem(STORAGE_KEY, l);
+    document.cookie = `${LANGUAGE_COOKIE}=${l}; Path=/; Max-Age=${COOKIE_MAX_AGE}; SameSite=Lax`;
+  } catch {
+    // Storage can be unavailable in restricted browser contexts.
+  }
+}
+
+function notifyLocaleChange(l: Locale) {
+  currentLocale = l;
+  listeners.forEach((listener) => listener());
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== STORAGE_KEY) return;
+
+    notifyLocaleChange(readStoredLocale(currentLocale));
+  };
+
+  window.addEventListener('storage', handleStorage);
+
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener('storage', handleStorage);
+  };
+}
+
+export function LanguageProvider({
+  children,
+  initialLocale = 'az',
+}: {
+  children: React.ReactNode;
+  initialLocale?: Locale;
+}) {
+  const locale = useSyncExternalStore(
+    subscribe,
+    () => {
+      currentLocale = readStoredLocale(initialLocale);
+      return currentLocale;
+    },
+    () => initialLocale,
+  );
+
+  useEffect(() => {
+    persistLocale(locale);
+  }, [locale]);
 
   const setLocale = (l: Locale) => {
-    localStorage.setItem(STORAGE_KEY, l);
-    setLocaleState(l);
+    persistLocale(l);
+    notifyLocaleChange(l);
   };
 
   const t = (key: TranslationKey): string => translations[locale][key] as string;

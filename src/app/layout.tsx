@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { Inter, Playfair_Display, Plus_Jakarta_Sans } from 'next/font/google';
 import { MotionConfig } from 'framer-motion';
 import './globals.css';
@@ -8,6 +9,7 @@ import { SiteShell } from '@/widgets/SiteShell';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { ToastProvider } from '@/providers/ToastProvider';
 import { LanguageProvider } from '@/providers/LanguageProvider';
+import { LANGUAGE_COOKIE, isLocale } from '@/lib/i18n';
 
 const displayFont = Playfair_Display({
   subsets: ['latin'],
@@ -30,9 +32,12 @@ export const metadata: Metadata = {
   description: 'Bakıda seçilmiş buketlər, premium gül kompozisiyaları və zövqlə hazırlanmış çatdırılma təcrübəsi.',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const storedLocale = (await cookies()).get(LANGUAGE_COOKIE)?.value;
+  const initialLocale = isLocale(storedLocale) ? storedLocale : 'az';
+
   return (
-    <html lang="en" className={`${displayFont.variable} ${bodyFont.variable} ${priceFont.variable}`}>
+    <html lang={initialLocale} className={`${displayFont.variable} ${bodyFont.variable} ${priceFont.variable}`}>
       <body className="app-shell antialiased">
         <div className="site-ambience" aria-hidden="true">
           <span className="site-ambience__blob site-ambience__blob--rose" />
@@ -41,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <span className="site-ambience__grain" />
         </div>
         <QueryProvider>
-          <LanguageProvider>
+          <LanguageProvider initialLocale={initialLocale}>
             <MotionConfig reducedMotion="user">
               <LenisProvider>
                 <SiteShell>

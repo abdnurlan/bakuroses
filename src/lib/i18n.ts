@@ -1,5 +1,11 @@
 export type Locale = 'az' | 'en' | 'ru';
 
+export const LANGUAGE_COOKIE = 'br_lang';
+
+export function isLocale(value: string | undefined | null): value is Locale {
+  return value === 'az' || value === 'en' || value === 'ru';
+}
+
 export const translations = {
   az: {
     // Navbar
