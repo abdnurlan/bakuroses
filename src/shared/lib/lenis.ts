@@ -5,10 +5,11 @@ let lenisInstance: Lenis | null = null;
 export function getLenis(): Lenis {
   if (typeof window === 'undefined') throw new Error('Lenis is client-only');
   if (!lenisInstance) {
+    const isMobile = window.innerWidth < 768;
     lenisInstance = new Lenis({
       autoRaf: false,
-      lerp: 0.085,
-      duration: 1.2,
+      lerp: isMobile ? 0.14 : 0.085,
+      duration: isMobile ? 0.9 : 1.2,
       easing: (t) => 1 - Math.pow(1 - t, 4),
       orientation: 'vertical',
       smoothWheel: true,

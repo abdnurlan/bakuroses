@@ -13,7 +13,7 @@ export interface CreateOrderPayload {
   lng: number;
   note?: string;
   items: OrderItem[];
-  paymentType: 'cash' | 'epoint';
+  paymentType: 'epoint';
   zoneId: string;
   promoCode?: string;
 }

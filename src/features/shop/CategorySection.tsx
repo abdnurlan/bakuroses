@@ -24,10 +24,10 @@ function CategoryCard({ cat, index }: { cat: Category; index: number }) {
   const y = useMotionValue(0);
   const sx = useSpring(x, { stiffness: 180, damping: 22 });
   const sy = useSpring(y, { stiffness: 180, damping: 22 });
-  const rotateX = useTransform(sy, [-0.5, 0.5], [5, -5]);
-  const rotateY = useTransform(sx, [-0.5, 0.5], [-5, 5]);
-  const imgX = useTransform(sx, [-0.5, 0.5], ['-3%', '3%']);
-  const imgY = useTransform(sy, [-0.5, 0.5], ['-3%', '3%']);
+  const rotateX = useTransform(sy, [-0.5, 0.5], canHover ? [5, -5] : [0, 0]);
+  const rotateY = useTransform(sx, [-0.5, 0.5], canHover ? [-5, 5] : [0, 0]);
+  const imgX = useTransform(sx, [-0.5, 0.5], canHover ? ['-3%', '3%'] : ['0%', '0%']);
+  const imgY = useTransform(sy, [-0.5, 0.5], canHover ? ['-3%', '3%'] : ['0%', '0%']);
 
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!canHover) return;

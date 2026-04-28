@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { motion, useAnimationFrame, useMotionValue } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -10,7 +10,7 @@ import { useLang } from '@/providers/LanguageProvider';
 
 const CARD_WIDTH = 320; // px
 const CARD_BLEED_X = 6; // px, so visible card gap stays 12px
-const SPEED = 60;       // px/sec
+const SPEED = 100;       // px/sec
 
 export function ProductGrid() {
   const { t } = useLang();
@@ -26,6 +26,19 @@ export function ProductGrid() {
 
   const x = useMotionValue(0);
   const lastTimeRef = useRef<number | null>(null);
+  const isVisibleRef = useRef(true);
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => { isVisibleRef.current = entry.isIntersecting; },
+      { threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   // Drag state
   const isDragging = useRef(false);
@@ -33,8 +46,12 @@ export function ProductGrid() {
   const dragStartVal = useRef(0);
   const [cursor, setCursor] = useState<'grab' | 'grabbing'>('grab');
 
-  // Auto-scroll — skips frames while dragging
+  // Auto-scroll — skips frames while dragging or off-screen
   useAnimationFrame((time) => {
+    if (!isVisibleRef.current) {
+      lastTimeRef.current = null;
+      return;
+    }
     if (isDragging.current) {
       lastTimeRef.current = null;
       return;
@@ -98,6 +115,7 @@ export function ProductGrid() {
 
       {/* Full-width marquee track */}
       <div
+        ref={viewportRef}
         className="product-marquee-viewport"
         style={{ cursor }}
         onPointerDown={onPointerDown}

@@ -7,7 +7,10 @@ import { useGSAP } from '@gsap/react';
 import {
   getHeroFramePath,
   HERO_FRAME_COUNT,
-  HERO_FRAME_PRELOAD_COUNT,
+  HERO_FRAME_COUNT_MOBILE,
+  getEffectiveFrameCount,
+  getEffectivePreloadCount,
+  getMobileFrameIndex,
 } from './heroFrameConfig';
 import { useLang } from '@/providers/LanguageProvider';
 
@@ -46,11 +49,14 @@ export function HeroCanvasScrub() {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const isMobileRef = useRef(typeof window !== 'undefined' && window.innerWidth < 768);
+  const frameCountRef = useRef(isMobileRef.current ? HERO_FRAME_COUNT_MOBILE : HERO_FRAME_COUNT);
+
   const framesRef = useRef<(HTMLImageElement | null)[]>(
-    Array.from({ length: HERO_FRAME_COUNT }, () => null),
+    Array.from({ length: frameCountRef.current }, () => null),
   );
   const loadedRef = useRef<boolean[]>(
-    Array.from({ length: HERO_FRAME_COUNT }, () => false),
+    Array.from({ length: frameCountRef.current }, () => false),
   );
   const currentFrameRef = useRef(0);
   const loadedCountRef = useRef(0);
@@ -65,7 +71,9 @@ export function HeroCanvasScrub() {
   const syncCanvasSize = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const dpr = clamp(window.devicePixelRatio || 1, 1, 2);
+    // Cap DPR at 1 on mobile to halve canvas pixel count
+    const maxDpr = isMobileRef.current ? 1 : 2;
+    const dpr = clamp(window.devicePixelRatio || 1, 1, maxDpr);
     const rect = canvas.getBoundingClientRect();
     const w = Math.max(1, Math.round(rect.width * dpr));
     const h = Math.max(1, Math.round(rect.height * dpr));
@@ -101,11 +109,11 @@ export function HeroCanvasScrub() {
   // ── Nearest-frame fallback ────────────────────────────────────────
   const renderNearest = useCallback(
     (target: number) => {
-      const bounded = clamp(target, 0, HERO_FRAME_COUNT - 1);
+      const bounded = clamp(target, 0, frameCountRef.current - 1);
       if (drawFrame(bounded)) return;
-      for (let d = 1; d < HERO_FRAME_COUNT; d++) {
+      for (let d = 1; d < frameCountRef.current; d++) {
         if (bounded - d >= 0 && drawFrame(bounded - d)) return;
-        if (bounded + d < HERO_FRAME_COUNT && drawFrame(bounded + d)) return;
+        if (bounded + d < frameCountRef.current && drawFrame(bounded + d)) return;
       }
     },
     [drawFrame],
@@ -128,57 +136,80 @@ export function HeroCanvasScrub() {
   // ── Frame loading ─────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
-    let idleHandle: number | null = null;
-    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    const idleHandles: number[] = [];
+    const timeoutHandles: ReturnType<typeof setTimeout>[] = [];
 
-    framesRef.current = Array.from({ length: HERO_FRAME_COUNT }, () => null);
-    loadedRef.current = Array.from({ length: HERO_FRAME_COUNT }, () => false);
+    const isMobile = isMobileRef.current;
+    const frameCount = frameCountRef.current;
+    const preloadCount = getEffectivePreloadCount();
+    // On mobile, step through full 120-frame set to pick 60 evenly-spaced frames
+    const step = isMobile ? Math.floor(HERO_FRAME_COUNT / frameCount) : 1;
+
+    framesRef.current = Array.from({ length: frameCount }, () => null);
+    loadedRef.current = Array.from({ length: frameCount }, () => false);
     loadedCountRef.current = 0;
 
-    const loadFrame = (index: number) => {
+    const loadFrame = (virtualIndex: number) => {
+      const physicalIndex = isMobile
+        ? getMobileFrameIndex(virtualIndex, HERO_FRAME_COUNT, frameCount)
+        : virtualIndex;
       const img = new Image();
       img.decoding = 'async';
-      img.src = getHeroFramePath(index);
+      img.src = getHeroFramePath(physicalIndex);
 
       img.onload = () => {
         if (cancelled) return;
-        framesRef.current[index] = img;
-        loadedRef.current[index] = true;
+        framesRef.current[virtualIndex] = img;
+        loadedRef.current[virtualIndex] = true;
         loadedCountRef.current += 1;
 
-        if (index === 0) {
+        if (virtualIndex === 0) {
           syncCanvasSize();
           setIsSequenceReady(true);
         }
 
-        if (index === currentFrameRef.current || loadedCountRef.current === 1) {
+        if (virtualIndex === currentFrameRef.current || loadedCountRef.current === 1) {
           scheduleRender(currentFrameRef.current);
         }
       };
     };
 
-    for (let i = 0; i < Math.min(HERO_FRAME_PRELOAD_COUNT, HERO_FRAME_COUNT); i++) {
+    for (let i = 0; i < Math.min(preloadCount, frameCount); i++) {
       loadFrame(i);
     }
 
-    const loadRest = () => {
-      for (let i = HERO_FRAME_PRELOAD_COUNT; i < HERO_FRAME_COUNT; i++) {
+    // Load remaining frames in small batches to avoid decode spikes
+    const BATCH_SIZE = isMobile ? 4 : frameCount;
+    let nextBatchStart = preloadCount;
+
+    const loadNextBatch = () => {
+      if (cancelled || nextBatchStart >= frameCount) return;
+      const end = Math.min(nextBatchStart + BATCH_SIZE, frameCount);
+      for (let i = nextBatchStart; i < end; i++) {
         loadFrame(i);
+      }
+      nextBatchStart = end;
+      if (nextBatchStart < frameCount) {
+        if (typeof window.requestIdleCallback === 'function') {
+          idleHandles.push(window.requestIdleCallback(loadNextBatch, { timeout: 3000 }));
+        } else {
+          timeoutHandles.push(setTimeout(loadNextBatch, 100));
+        }
       }
     };
 
     if (typeof window.requestIdleCallback === 'function') {
-      idleHandle = window.requestIdleCallback(loadRest, { timeout: 2000 });
+      idleHandles.push(window.requestIdleCallback(loadNextBatch, { timeout: 2000 }));
     } else {
-      timeoutHandle = setTimeout(loadRest, 200);
+      timeoutHandles.push(setTimeout(loadNextBatch, 200));
     }
 
     return () => {
       cancelled = true;
-      if (idleHandle !== null && 'cancelIdleCallback' in window) {
-        window.cancelIdleCallback(idleHandle);
+      if ('cancelIdleCallback' in window) {
+        idleHandles.forEach((h) => window.cancelIdleCallback(h));
       }
-      if (timeoutHandle !== null) clearTimeout(timeoutHandle);
+      timeoutHandles.forEach(clearTimeout);
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
@@ -199,6 +230,18 @@ export function HeroCanvasScrub() {
     return () => ro.disconnect();
   }, [syncCanvasSize, scheduleRender]);
 
+  // ── hero-char-float — paused when hero scrolled out ──────────────
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const io = new IntersectionObserver(
+      ([entry]) => section.classList.toggle('hero-section-visible', entry.isIntersecting),
+      { threshold: 0 },
+    );
+    io.observe(section);
+    return () => io.disconnect();
+  }, []);
+
   // ── GSAP scroll scrub ─────────────────────────────────────────────
   useGSAP(
     () => {
@@ -210,7 +253,7 @@ export function HeroCanvasScrub() {
       const playhead = { frame: 0 };
 
       const tween = gsap.to(playhead, {
-        frame: HERO_FRAME_COUNT - 1,
+        frame: frameCountRef.current - 1,
         ease: 'none',
         duration: 1,
         onUpdate() {

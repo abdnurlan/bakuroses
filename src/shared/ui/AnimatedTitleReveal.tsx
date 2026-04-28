@@ -51,24 +51,14 @@ export function AnimatedTitleReveal({
                 <motion.span
                   data-char
                   variants={{
-                    hidden: {
-                      y: '115%',
-                      opacity: 0,
-                      rotateZ: 1.5,
-                      filter: 'blur(6px)',
-                    },
-                    visible: {
-                      y: '0%',
-                      opacity: 1,
-                      rotateZ: 0,
-                      filter: 'blur(0px)',
-                    },
+                    hidden: { y: '115%', opacity: 0, rotateZ: 1.5 },
+                    visible: { y: '0%', opacity: 1, rotateZ: 0 },
                   }}
                   transition={{
                     duration: DURATION.normal,
                     ease: EASE.smooth,
                   }}
-                  style={{ display: 'inline-block', willChange: 'transform, opacity, filter' }}
+                  style={{ display: 'inline-block' }}
                 >
                   {char === ' ' ? '\u00A0' : char}
                 </motion.span>

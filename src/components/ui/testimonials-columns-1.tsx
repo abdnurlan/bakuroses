@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export type TestimonialItem = {
   text: string;
@@ -22,13 +22,27 @@ export const TestimonialsColumn = (props: {
   duration?: number;
 }) => {
   const duration = props.duration ?? 15;
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setVisible(entry.isIntersecting),
+      { threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   return (
-    <div className={props.className} style={{ overflow: "hidden" }}>
+    <div ref={wrapRef} className={props.className} style={{ overflow: "hidden" }}>
       <div
         className="flex flex-col gap-4 pb-4 testimonials-scroll-track"
         style={{
           animation: `testimonials-scroll ${duration}s linear infinite`,
+          animationPlayState: visible ? 'running' : 'paused',
           willChange: 'transform',
         }}
       >

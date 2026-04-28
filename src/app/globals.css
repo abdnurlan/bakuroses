@@ -131,32 +131,31 @@ body {
 .site-ambience__blob {
   position: absolute;
   border-radius: 999px;
-  filter: blur(34px);
   opacity: 0.8;
 }
 
 .site-ambience__blob--rose {
   top: -6rem;
   left: -3rem;
-  width: 32rem;
-  height: 24rem;
-  background: radial-gradient(circle, rgba(223, 154, 180, 0.28) 0%, rgba(223, 154, 180, 0.1) 42%, transparent 74%);
+  width: 42rem;
+  height: 32rem;
+  background: radial-gradient(circle, rgba(223, 154, 180, 0.22) 0%, rgba(223, 154, 180, 0.07) 45%, transparent 68%);
 }
 
 .site-ambience__blob--olive {
   top: 18rem;
   right: -6rem;
-  width: 24rem;
-  height: 24rem;
-  background: radial-gradient(circle, rgba(160, 176, 129, 0.22) 0%, rgba(160, 176, 129, 0.08) 44%, transparent 76%);
+  width: 32rem;
+  height: 32rem;
+  background: radial-gradient(circle, rgba(160, 176, 129, 0.18) 0%, rgba(160, 176, 129, 0.05) 46%, transparent 70%);
 }
 
 .site-ambience__blob--ivory {
   bottom: -5rem;
   left: 18%;
-  width: 36rem;
-  height: 20rem;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.66) 0%, rgba(255, 247, 250, 0.22) 45%, transparent 78%);
+  width: 46rem;
+  height: 28rem;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55) 0%, rgba(255, 247, 250, 0.16) 46%, transparent 72%);
 }
 
 .site-ambience__grain {
@@ -2166,8 +2165,13 @@ video {
 .product-marquee-track {
   display: flex;
   gap: 0;
-  will-change: transform;
   padding: 0 2.25rem;
+}
+
+@media (min-width: 768px) {
+  .product-marquee-track {
+    will-change: transform;
+  }
 }
 
 .product-marquee-slide {
@@ -2198,7 +2202,12 @@ video {
     0 28px 56px rgba(0, 0, 0, 0.22);
   perspective: 800px;
   cursor: default;
-  will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pc {
+    will-change: transform;
+  }
 }
 
 /* shimmer sweep */
@@ -2722,6 +2731,11 @@ video {
 .hero-title-pink__char {
   display: inline-block;
   animation: hero-char-float 3.8s ease-in-out infinite;
+  animation-play-state: paused;
+}
+
+.hero-section-visible .hero-title-pink__char {
+  animation-play-state: running;
 }
 
 @keyframes hero-char-float {

@@ -31,12 +31,13 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
+  // On touch/mobile canHover is false, so spring updates never fire — safe to always create
   const sx = useSpring(x, { stiffness: 160, damping: 20 });
   const sy = useSpring(y, { stiffness: 160, damping: 20 });
-  const rotateX = useTransform(sy, [-0.5, 0.5], [5, -5]);
-  const rotateY = useTransform(sx, [-0.5, 0.5], [-5, 5]);
-  const imgX = useTransform(sx, [-0.5, 0.5], ['-3%', '3%']);
-  const imgY = useTransform(sy, [-0.5, 0.5], ['-3%', '3%']);
+  const rotateX = useTransform(sy, [-0.5, 0.5], canHover ? [5, -5] : [0, 0]);
+  const rotateY = useTransform(sx, [-0.5, 0.5], canHover ? [-5, 5] : [0, 0]);
+  const imgX = useTransform(sx, [-0.5, 0.5], canHover ? ['-3%', '3%'] : ['0%', '0%']);
+  const imgY = useTransform(sy, [-0.5, 0.5], canHover ? ['-3%', '3%'] : ['0%', '0%']);
   const [glossPos, setGlossPos] = useState({ x: 50, y: 50 });
   const isExpanded = canHover ? hovered : true;
 
@@ -98,7 +99,7 @@ export function ProductCard({ product }: ProductCardProps) {
             placeholder="blur"
             blurDataURL={BLUR_PLACEHOLDER}
           />
-          {hoverImage !== product.imageUrl && (
+          {canHover && hoverImage !== product.imageUrl && (
             <Image
               src={hoverImage}
               alt=""

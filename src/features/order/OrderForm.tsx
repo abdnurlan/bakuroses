@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, CaretDown, CreditCard, Money, ShoppingBagOpen, SpinnerGap, Tag } from '@phosphor-icons/react';
+import { ArrowRight, CaretDown, CreditCard, ShoppingBagOpen, SpinnerGap, Tag } from '@phosphor-icons/react';
 import { MapPicker } from './MapPicker';
 import { checkCoverage, type Zone } from '@/api/zones';
 import { createOrder, type OrderItem } from '@/api/orders';
@@ -25,7 +25,6 @@ export function OrderForm() {
     note: '',
     lat: null as number | null,
     lng: null as number | null,
-    paymentType: 'cash' as 'cash' | 'epoint',
   });
   const [zone, setZone] = useState<Zone | null>(null);
   const [coverageLoading, setCoverageLoading] = useState(false);
@@ -143,7 +142,7 @@ export function OrderForm() {
       lng: form.lng!,
       note: form.note || undefined,
       items,
-      paymentType: form.paymentType,
+      paymentType: 'epoint',
       zoneId: zone.id,
       promoCode: promoResult ? promoInput.trim() : undefined,
     });
@@ -399,24 +398,10 @@ export function OrderForm() {
           )}
 
           <div className="order-payment-options">
-            <button
-              type="button"
-              onClick={() => setForm((f) => ({ ...f, paymentType: 'cash' }))}
-              className="order-payment-option"
-              data-active={form.paymentType === 'cash' ? 'true' : undefined}
-            >
-              <span className="order-payment-icon"><Money size={20} weight="duotone" /></span>
-              <span>Nağd ödəniş</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setForm((f) => ({ ...f, paymentType: 'epoint' }))}
-              className="order-payment-option"
-              data-active={form.paymentType === 'epoint' ? 'true' : undefined}
-            >
+            <div className="order-payment-option" data-active="true" style={{ pointerEvents: 'none' }}>
               <span className="order-payment-icon"><CreditCard size={20} weight="duotone" /></span>
-              <span>Online ödəniş</span>
-            </button>
+              <span>Kartla ödəniş</span>
+            </div>
           </div>
 
           <button

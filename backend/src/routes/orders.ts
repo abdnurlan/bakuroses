@@ -22,7 +22,7 @@ const CreateOrderSchema = z.object({
   items: z
     .array(z.object({ productId: z.string(), quantity: z.number().int().positive() }))
     .min(1),
-  paymentType: z.enum(['cash', 'epoint']),
+  paymentType: z.enum(['epoint']),
   zoneId: z.string(),
   promoCode: z.string().optional(),
 });
@@ -121,7 +121,7 @@ router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
       discountAmount,
       promoCodeId,
       paymentType,
-      status: paymentType === 'cash' ? 'CONFIRMED' : 'PENDING_PAYMENT',
+      status: 'PENDING_PAYMENT',
       zoneId,
       items: {
         create: items.map((item: { productId: string; quantity: number }) => ({
@@ -134,31 +134,22 @@ router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
     include: { items: { include: { product: true } } },
   });
 
-  if (promoCodeId && paymentType === 'cash') {
-    await prisma.promoCode.update({
-      where: { id: promoCodeId },
-      data: { usedCount: { increment: 1 } },
-    });
-  }
+  const payment = await createEpointPayment({
+    orderId: order.id,
+    amount: total,
+    currency: 'AZN',
+    description: `Order #${order.code}`,
+    successRedirectUrl: `${process.env.CLIENT_URL}/success?order_id=${order.id}`,
+    failRedirectUrl: `${process.env.CLIENT_URL}/error?order_id=${order.id}`,
+  });
 
-  if (paymentType === 'cash') {
-    await notifyByStatus(order, 'CONFIRMED');
-  }
-
-  if (paymentType === 'epoint') {
-    const payment = await createEpointPayment({
-      orderId: order.id,
-      amount: total,
-      currency: 'AZN',
-      description: `Order #${order.code}`,
-      successRedirectUrl: `${process.env.CLIENT_URL}/success?order_id=${order.id}`,
-      failRedirectUrl: `${process.env.CLIENT_URL}/error?order_id=${order.id}`,
-    });
-    res.json({ orderId: order.id, paymentUrl: payment.redirect_url });
+  if (payment.status !== 'success' || !payment.redirect_url) {
+    await prisma.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' } });
+    res.status(502).json({ error: 'Payment gateway error. Please try again.' });
     return;
   }
 
-  res.json({ orderId: order.id, successUrl: `/success?order_id=${order.id}` });
+  res.json({ orderId: order.id, paymentUrl: payment.redirect_url });
 }));
 
 router.get('/:id', asyncHandler(async (req, res) => {

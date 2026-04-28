@@ -23,7 +23,7 @@ router.post('/callback', asyncHandler(async (req, res) => {
     return;
   }
 
-  const isPaid = decoded.status === '1';
+  const isPaid = decoded.status === 'success';
   const order = await prisma.order.findUnique({
     where: { id: decoded.order_id },
     select: { id: true, total: true, promoCodeId: true },
