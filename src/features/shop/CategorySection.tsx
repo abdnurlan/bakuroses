@@ -10,10 +10,12 @@ import { fetchCategories, type Category } from '@/api/categories';
 import { RevealOnScroll } from '@/shared/ui/RevealOnScroll';
 import { AnimatedTitleReveal } from '@/shared/ui/AnimatedTitleReveal';
 import { useLang } from '@/providers/LanguageProvider';
+import { getCategoryDescription, getCategoryName } from '@/lib/i18n';
 
 const FALLBACK_CATEGORIES: Category[] = [];
 
 function CategoryCard({ cat, index }: { cat: Category; index: number }) {
+  const { locale } = useLang();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [canHover] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches,
@@ -44,6 +46,8 @@ function CategoryCard({ cat, index }: { cat: Category; index: number }) {
   };
 
   const isFeatured = index === 0 || index === 2;
+  const name = getCategoryName(locale, cat.slug, cat.name);
+  const description = getCategoryDescription(locale, cat.slug, cat.description ?? '');
 
   return (
     <Link href={`/shop?category=${cat.slug}`} className={`cat-card ${isFeatured ? 'cat-card--featured' : ''}`}>
@@ -61,7 +65,7 @@ function CategoryCard({ cat, index }: { cat: Category; index: number }) {
           {cat.imageUrl && (
             <Image
               src={cat.imageUrl}
-              alt={cat.name}
+              alt={name}
               fill
               className="cat-card__img"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -89,15 +93,15 @@ function CategoryCard({ cat, index }: { cat: Category; index: number }) {
             animate={hovered ? { y: 0 } : { y: 4 }}
             transition={{ duration: 0.28 }}
           >
-            {cat.name}
+            {name}
           </motion.h3>
-          {cat.description && (
+          {description && (
             <motion.p
               className="cat-card__desc"
               animate={hovered ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
               transition={{ duration: 0.28, delay: 0.04 }}
             >
-              {cat.description}
+              {description}
             </motion.p>
           )}
         </div>

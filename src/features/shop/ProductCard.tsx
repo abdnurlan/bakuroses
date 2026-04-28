@@ -10,6 +10,7 @@ import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Product } from '@/entities/product/types';
 import { useAppStore } from '@/shared/store';
 import { useLang } from '@/providers/LanguageProvider';
+import { getCategoryName } from '@/lib/i18n';
 
 interface ProductCardProps {
   product: Product;
@@ -24,7 +25,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const [canHover, setCanHover] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const addToCart = useAppStore((s) => s.addToCart);
-  const { t } = useLang();
+  const { locale, t } = useLang();
   const cardRef = useRef<HTMLElement>(null);
 
   const numericId = product.id.match(/\d+/)?.[0] ?? '1';
@@ -170,7 +171,9 @@ export function ProductCard({ product }: ProductCardProps) {
       {/* footer */}
       <div className="pc-footer">
         <div className="pc-footer-left">
-          <span className="pc-footer-name">{product.category ?? t('product_ready')}</span>
+          <span className="pc-footer-name">
+            {getCategoryName(locale, product.categorySlug, product.category ?? t('product_ready'))}
+          </span>
           <span className="pc-footer-cat">{product.stemNote ?? t('product_ready')}</span>
         </div>
         <motion.button

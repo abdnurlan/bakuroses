@@ -15,6 +15,7 @@ import { useLang } from '@/providers/LanguageProvider';
 import { SiteFooter } from '@/features/shop/SiteFooter';
 import { AnimatedTitleReveal } from '@/shared/ui/AnimatedTitleReveal';
 import { useAppStore } from '@/shared/store';
+import { getCategoryName } from '@/lib/i18n';
 
 type SortOption = 'default' | 'price_asc' | 'price_desc' | 'newest';
 
@@ -53,7 +54,7 @@ function FilterAccordion({
 }
 
 function ShopInner() {
-  const { t } = useLang();
+  const { locale, t } = useLang();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -195,7 +196,7 @@ function ShopInner() {
                 className={`sf-cat-item ${activeCategory === cat.slug ? 'is-active' : ''}`}
                 onClick={() => setActiveCategory(activeCategory === cat.slug ? '' : cat.slug)}
               >
-                <span className="sf-cat-name">{cat.name}</span>
+                <span className="sf-cat-name">{getCategoryName(locale, cat.slug, cat.name)}</span>
                 {cat._count?.products != null && (
                   <span className="sf-cat-count">{cat._count.products}</span>
                 )}
@@ -338,7 +339,12 @@ function ShopInner() {
             <div className="shop-active-filters">
               {activeCategory && (
                 <span className="shop-active-pill">
-                  <span>{categories.find(c => c.slug === activeCategory)?.name ?? activeCategory}</span>
+                  <span>
+                    {(() => {
+                      const category = categories.find(c => c.slug === activeCategory);
+                      return getCategoryName(locale, category?.slug ?? activeCategory, category?.name ?? activeCategory);
+                    })()}
+                  </span>
                   <button onClick={() => setActiveCategory('')}><X size={11} /></button>
                 </span>
               )}

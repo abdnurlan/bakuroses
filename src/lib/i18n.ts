@@ -712,3 +712,144 @@ export const translations = {
 } as const;
 
 export type TranslationKey = keyof typeof translations.az;
+
+const categoryTranslations = {
+  az: {
+    'mono-buketler': {
+      name: 'Mono Buketlər',
+      description: 'Tək növ güldən hazırlanmış minimalist buketlər',
+    },
+    'qarisiq-buketler': {
+      name: 'Qarışıq Buketlər',
+      description: 'Müxtəlif güllərin uyğun birləşməsindən yaranan buketlər',
+    },
+    'premium-kompozisiyalar': {
+      name: 'Premium Kompozisiya və Buketlər',
+      description: 'Seçilmiş premium güllərdən hazırlanmış lüks kompozisiyalar',
+    },
+    'sebet-qutu-kompozisiyalar': {
+      name: 'Səbət və Qutuda Kompozisiyalar',
+      description: 'Səbət və xüsusi qutu içində təqdim olunan gül kompozisiyaları',
+    },
+    'gelin-buketleri': {
+      name: 'Gəlin Buketləri',
+      description: 'Toy mərasimləri üçün xüsusi hazırlanmış gəlin buketləri',
+    },
+    art: {
+      name: 'Art',
+      description: 'Floristik sənət əsərləri - klassik çərçivədən kənara çıxan kompozisiyalar',
+    },
+    'yeni-dogulmus': {
+      name: 'Yeni Doğulmuş Uşaq Çıxışı',
+      description: 'Yeni doğulan uşaq üçün xüsusi hazırlanmış zərif buket və kompozisiyalar',
+    },
+    'yeni-il-kompozisiyalari': {
+      name: 'Yeni İl Kompozisiyaları',
+      description: 'Yeni il və qış mövsümü üçün xüsusi dekorlu çiçək kompozisiyaları',
+    },
+    novruz: {
+      name: 'Novruz',
+      description: 'Novruz bayramı ruhunu əks etdirən milli koloritli gül kompozisiyaları',
+    },
+    'toy-ad-guunu-nisar-dekor': {
+      name: 'Toy, Ad günü, Nişan və Dekorlar',
+      description: 'Xüsusi tədbirlər üçün tam məkan bəzəyi və dekor həlləri',
+    },
+  },
+  en: {
+    'mono-buketler': {
+      name: 'Mono Bouquets',
+      description: 'Minimalist bouquets made with a single flower type',
+    },
+    'qarisiq-buketler': {
+      name: 'Mixed Bouquets',
+      description: 'Bouquets created from carefully matched flower combinations',
+    },
+    'premium-kompozisiyalar': {
+      name: 'Premium Compositions and Bouquets',
+      description: 'Luxury compositions made with selected premium flowers',
+    },
+    'sebet-qutu-kompozisiyalar': {
+      name: 'Basket and Boxed Compositions',
+      description: 'Flower compositions presented in baskets and special boxes',
+    },
+    'gelin-buketleri': {
+      name: 'Bridal Bouquets',
+      description: 'Special bridal bouquets for wedding ceremonies',
+    },
+    art: {
+      name: 'Art',
+      description: 'Floral art pieces that move beyond the classic frame',
+    },
+    'yeni-dogulmus': {
+      name: 'Newborn Baby Welcome',
+      description: 'Delicate bouquets and compositions for welcoming a newborn',
+    },
+    'yeni-il-kompozisiyalari': {
+      name: 'New Year Compositions',
+      description: 'Seasonal flower compositions with festive winter decor',
+    },
+    novruz: {
+      name: 'Novruz',
+      description: 'Nationally inspired floral compositions for Novruz',
+    },
+    'toy-ad-guunu-nisar-dekor': {
+      name: 'Wedding, Birthday, Engagement and Decor',
+      description: 'Complete floral styling and decor solutions for special events',
+    },
+  },
+  ru: {
+    'mono-buketler': {
+      name: 'Монобукеты',
+      description: 'Минималистичные букеты из одного вида цветов',
+    },
+    'qarisiq-buketler': {
+      name: 'Смешанные букеты',
+      description: 'Букеты из гармоничных сочетаний разных цветов',
+    },
+    'premium-kompozisiyalar': {
+      name: 'Премиальные композиции и букеты',
+      description: 'Люксовые композиции из отборных премиальных цветов',
+    },
+    'sebet-qutu-kompozisiyalar': {
+      name: 'Композиции в корзинах и коробках',
+      description: 'Цветочные композиции в корзинах и специальных коробках',
+    },
+    'gelin-buketleri': {
+      name: 'Свадебные букеты',
+      description: 'Особые букеты невесты для свадебных церемоний',
+    },
+    art: {
+      name: 'Арт',
+      description: 'Флористические арт-объекты за рамками классики',
+    },
+    'yeni-dogulmus': {
+      name: 'Встреча новорожденного',
+      description: 'Нежные букеты и композиции для выписки новорожденного',
+    },
+    'yeni-il-kompozisiyalari': {
+      name: 'Новогодние композиции',
+      description: 'Праздничные зимние цветочные композиции',
+    },
+    novruz: {
+      name: 'Новруз',
+      description: 'Цветочные композиции в национальном колорите для Новруза',
+    },
+    'toy-ad-guunu-nisar-dekor': {
+      name: 'Свадьбы, дни рождения, помолвки и декор',
+      description: 'Полное цветочное оформление и декор для особых мероприятий',
+    },
+  },
+} as const satisfies Record<Locale, Record<string, { name: string; description: string }>>;
+
+export function getCategoryName(locale: Locale, slug?: string | null, fallback = '') {
+  if (!slug) return fallback;
+  const categories = categoryTranslations[locale] as Record<string, { name: string; description: string }>;
+  return categories[slug]?.name ?? fallback;
+}
+
+export function getCategoryDescription(locale: Locale, slug?: string | null, fallback = '') {
+  if (!slug) return fallback;
+  const categories = categoryTranslations[locale] as Record<string, { name: string; description: string }>;
+  return categories[slug]?.description ?? fallback;
+}
