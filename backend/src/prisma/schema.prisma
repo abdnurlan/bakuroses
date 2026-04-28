@@ -56,6 +56,9 @@ model Order {
   code           String      @unique
   customerName   String
   customerPhone  String
+  deliveryFor    String      @default("self")
+  recipientName  String?
+  recipientPhone String?
   address        String
   lat            Float
   lng            Float

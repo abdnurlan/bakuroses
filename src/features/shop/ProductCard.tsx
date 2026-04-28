@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
-import { Check, ShoppingBag } from '@phosphor-icons/react';
+import { ArrowsOutSimple, Check, ShoppingBag, X } from '@phosphor-icons/react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
 
@@ -21,6 +22,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [canHover, setCanHover] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const addToCart = useAppStore((s) => s.addToCart);
   const { t } = useLang();
   const cardRef = useRef<HTMLElement>(null);
@@ -78,15 +80,16 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <motion.article
-      ref={cardRef}
-      className="pc"
-      style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
-      onMouseMove={onMouseMove}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={onMouseLeave}
-      whileTap={{ scale: 0.975 }}
-    >
+    <>
+      <motion.article
+        ref={cardRef}
+        className="pc"
+        style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
+        onMouseMove={onMouseMove}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={onMouseLeave}
+        whileTap={{ scale: 0.975 }}
+      >
       {/* image */}
       <div className="pc-media">
         <motion.div className="pc-img-wrap" style={{ x: imgX, y: imgY }}>
@@ -114,6 +117,18 @@ export function ProductCard({ product }: ProductCardProps) {
         </motion.div>
 
         <div className="pc-vignette" />
+
+        <button
+          type="button"
+          className="pc-view-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            setViewerOpen(true);
+          }}
+          aria-label={t('product_view_large')}
+        >
+          <ArrowsOutSimple size={15} weight="bold" />
+        </button>
 
         <div className="pc-top">
           <div className="pc-top-tags">
@@ -175,6 +190,32 @@ export function ProductCard({ product }: ProductCardProps) {
           background: `radial-gradient(ellipse at ${glossPos.x}% ${glossPos.y}%, rgba(255,255,255,0.11) 0%, transparent 62%)`,
         }}
       />
-    </motion.article>
+      </motion.article>
+
+      {viewerOpen && createPortal(
+        <div className="pc-viewer" role="dialog" aria-modal="true" aria-label={product.name}>
+          <button
+            type="button"
+            className="pc-viewer-close"
+            onClick={() => setViewerOpen(false)}
+            aria-label={t('cart_close')}
+          >
+            <X size={22} weight="bold" />
+          </button>
+          <div className="pc-viewer-frame">
+            <Image
+              src={product.imageUrl}
+              alt={product.name}
+              fill
+              className="pc-viewer-img"
+              sizes="100vw"
+              placeholder="blur"
+              blurDataURL={BLUR_PLACEHOLDER}
+            />
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }

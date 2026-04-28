@@ -8,6 +8,9 @@ export interface OrderItem {
 export interface CreateOrderPayload {
   name: string;
   phone: string;
+  deliveryFor: 'self' | 'gift';
+  recipientName?: string;
+  recipientPhone?: string;
   address: string;
   lat: number;
   lng: number;
@@ -29,6 +32,9 @@ export interface Order {
   code: string;
   customerName: string;
   customerPhone: string;
+  deliveryFor?: 'self' | 'gift';
+  recipientName?: string | null;
+  recipientPhone?: string | null;
   address: string;
   lat: number;
   lng: number;

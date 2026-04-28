@@ -165,7 +165,7 @@ export default function AdminOrdersPage() {
                   <td style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{order.zone.name}</td>
                   <td style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', fontWeight: 600 }}>{order.total.toFixed(0)} ₼</td>
                   <td style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                    {order.paymentType === 'cash' ? '💵 Nağd' : '💳 Online'}
+                    Online
                   </td>
                   <td style={{ padding: '0.75rem 1rem' }}>
                     <span style={{

@@ -15,6 +15,9 @@ const router = Router();
 const CreateOrderSchema = z.object({
   name: z.string().min(1),
   phone: z.string().min(6),
+  deliveryFor: z.enum(['self', 'gift']).default('self'),
+  recipientName: z.string().optional(),
+  recipientPhone: z.string().optional(),
   address: z.string().min(1),
   lat: z.number(),
   lng: z.number(),
@@ -25,6 +28,14 @@ const CreateOrderSchema = z.object({
   paymentType: z.enum(['epoint']),
   zoneId: z.string(),
   promoCode: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.deliveryFor !== 'gift') return;
+  if (!data.recipientName?.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['recipientName'], message: 'Recipient name is required' });
+  }
+  if (!data.recipientPhone?.trim() || data.recipientPhone.trim().length < 6) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['recipientPhone'], message: 'Recipient phone is required' });
+  }
 });
 
 const STATUS_MESSAGES: Record<string, { title: string; body: string }> = {
@@ -54,7 +65,7 @@ async function notifyByStatus(order: { id: string; code: string; customerName: s
 }
 
 router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
-  const { name, phone, address, lat, lng, note, items, paymentType, zoneId, promoCode } = req.body;
+  const { name, phone, deliveryFor, recipientName, recipientPhone, address, lat, lng, note, items, paymentType, zoneId, promoCode } = req.body;
 
   const zone = await prisma.zone.findUnique({ where: { id: zoneId } });
   if (!zone || !zone.isActive) {
@@ -112,6 +123,9 @@ router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
       code: generateOrderCode(),
       customerName: name,
       customerPhone: phone,
+      deliveryFor,
+      recipientName: deliveryFor === 'gift' ? recipientName : null,
+      recipientPhone: deliveryFor === 'gift' ? recipientPhone : null,
       address,
       lat,
       lng,
