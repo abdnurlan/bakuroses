@@ -46,7 +46,7 @@ function NavLink({ label, href, icon, onNavigate, mobile }: {
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     const sectionId = SECTION_ROUTES[href];
 
-    if (pathname === '/' && sectionId) {
+    if ((pathname === '/' || pathname === '/v2') && sectionId) {
       const target = document.getElementById(sectionId);
 
       if (target) {
