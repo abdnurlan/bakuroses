@@ -28,7 +28,7 @@ interface Order {
   createdAt: string; note?: string;
   zone: { name: string };
   promoCode?: { code: string } | null;
-  items: { quantity: number; price: number; product: { name: string } }[];
+  items: { quantity: number; price: number; product: { name: string; imageUrl: string } }[];
 }
 
 interface OrdersResponse {
@@ -96,8 +96,23 @@ export default function AdminOrdersPage() {
 
             <div style={{ background: '#f9f9f9', borderRadius: 10, padding: '0.75rem', marginBottom: '1rem' }}>
               {selected.items.map((item, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', padding: '0.3rem 0', borderBottom: '1px solid #eee' }}>
-                  <span>{item.product.name} × {item.quantity}</span>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.85rem', fontSize: '0.875rem', padding: '0.55rem 0', borderBottom: '1px solid #eee' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                    <img
+                      src={item.product.imageUrl}
+                      alt={item.product.name}
+                      style={{
+                        width: 58,
+                        height: 58,
+                        borderRadius: 10,
+                        objectFit: 'cover',
+                        border: '1px solid var(--color-border)',
+                        background: '#fff',
+                        flex: '0 0 auto',
+                      }}
+                    />
+                    <span style={{ minWidth: 0 }}>{item.product.name} × {item.quantity}</span>
+                  </div>
                   <span style={{ fontWeight: 600 }}>{(item.price * item.quantity).toFixed(0)} ₼</span>
                 </div>
               ))}
@@ -218,5 +233,5 @@ const modalOverlay: React.CSSProperties = {
 };
 const modalBox: React.CSSProperties = {
   background: '#fff', borderRadius: 20, padding: '2rem', width: '100%',
-  maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 12px 60px rgba(0,0,0,0.15)',
+  maxWidth: 620, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 12px 60px rgba(0,0,0,0.15)',
 };
