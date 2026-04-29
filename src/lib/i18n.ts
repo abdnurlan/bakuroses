@@ -127,6 +127,7 @@ export const translations = {
     cta_stat_fresh: 'Təzə güllər',
 
     footer_rights: 'Bütün hüquqlar qorunur',
+    footer_credit: 'Bu sayt Codalov tərəfindən hazırlanmışdır',
 
     // Botanical banner
     banner_kicker: 'Premium Botanika Kolleksiyası',
@@ -366,6 +367,7 @@ export const translations = {
     cta_stat_fresh: 'Fresh flowers',
 
     footer_rights: 'All rights reserved',
+    footer_credit: 'This website was created by Codalov',
 
     banner_kicker: 'Premium Botanical Collection',
     banner_title: 'Flowers selected for the space,\nquiet and considered.',
@@ -599,6 +601,7 @@ export const translations = {
     cta_stat_fresh: 'Свежие цветы',
 
     footer_rights: 'Все права защищены',
+    footer_credit: 'Этот сайт создан Codalov',
 
     banner_kicker: 'Премиальная Ботаническая Коллекция',
     banner_title: 'Цветы для пространства,\nтихие и продуманные.',

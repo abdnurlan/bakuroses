@@ -7,10 +7,8 @@ import type { TranslationKey } from '@/lib/i18n';
 import {
   InstagramLogo,
   WhatsappLogo,
-  TelegramLogo,
   MapPin,
   Phone,
-  Envelope,
   ArrowUpRight,
 } from '@phosphor-icons/react';
 
@@ -18,21 +16,14 @@ const SOCIAL_LINKS = [
   {
     icon: InstagramLogo,
     label: 'Instagram',
-    href: 'https://www.instagram.com/bakuroses/',
+    href: 'https://www.instagram.com/baku.roses/',
     weight: 'fill' as const,
   },
-  {
-    icon: WhatsappLogo,
-    label: 'WhatsApp',
-    href: 'https://wa.me/994505050000',
-    weight: 'fill' as const,
-  },
-  {
-    icon: TelegramLogo,
-    label: 'Telegram',
-    href: 'https://t.me/bakuroses',
-    weight: 'fill' as const,
-  },
+];
+
+const CONTACT_NUMBERS = [
+  { label: '+994 50 705 11 15', plain: '994507051115' },
+  { label: '+994 55 705 11 18', plain: '994557051118' },
 ];
 
 const NAV_LINKS = [
@@ -108,18 +99,27 @@ export function SiteFooter() {
           <motion.div className="sf-contact-col" variants={fadeUp}>
             <p className="sf-col-title">{t('nav_order')}</p>
             <ul className="sf-contact-list">
-              <li>
-                <a href="tel:+994505050000" className="sf-contact-item">
-                  <Phone size={16} weight="fill" className="sf-contact-icon" />
-                  <span>+994 50 505 00 00</span>
-                </a>
-              </li>
-              <li>
-                <a href="mailto:info@bakuroses.az" className="sf-contact-item">
-                  <Envelope size={16} weight="fill" className="sf-contact-icon" />
-                  <span>info@bakuroses.az</span>
-                </a>
-              </li>
+              {CONTACT_NUMBERS.map((number) => (
+                <li key={number.plain} className="sf-contact-number-row">
+                  <span className="sf-contact-number">{number.label}</span>
+                  <a
+                    href={`tel:+${number.plain}`}
+                    className="sf-contact-action"
+                    aria-label={`${number.label} zəng et`}
+                  >
+                    <Phone size={16} weight="fill" />
+                  </a>
+                  <a
+                    href={`https://wa.me/${number.plain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="sf-contact-action"
+                    aria-label={`${number.label} WhatsApp`}
+                  >
+                    <WhatsappLogo size={16} weight="fill" />
+                  </a>
+                </li>
+              ))}
               <li>
                 <span className="sf-contact-item sf-no-link">
                   <MapPin size={16} weight="fill" className="sf-contact-icon" />
@@ -136,7 +136,15 @@ export function SiteFooter() {
         {/* ─── Bottom row ─── */}
         <div className="sf-bottom">
           <span className="sf-copy">
-            © {year} Baku Roses · {t('footer_rights')}
+            © {year} Baku Roses · {t('footer_rights')} ·{' '}
+            <a
+              href="https://www.instagram.com/codalov.co/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sf-copy-link"
+            >
+              {t('footer_credit')}
+            </a>
           </span>
           <div className="sf-bottom-links">
             <a href="/privacy" className="sf-bottom-link">Privacy</a>
