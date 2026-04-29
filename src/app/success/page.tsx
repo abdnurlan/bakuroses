@@ -1,11 +1,16 @@
 'use client';
 
+import Script from 'next/script';
 import Link from 'next/link';
 import { House } from '@phosphor-icons/react';
 import { DeliverySuccessOverlay } from '@/features/order/DeliverySuccessOverlay';
 
 export default function SuccessPage() {
   return (
+    <>
+      <Script id="ga-conversion" strategy="afterInteractive">
+        {`gtag('event', 'conversion', {'send_to': 'AW-11557624631/vpItCMGo2ZwaELe2jYcr'});`}
+      </Script>
     <main
       className="order-success-page"
       style={{
@@ -47,5 +52,6 @@ export default function SuccessPage() {
         Ana səhifəyə qayıt
       </Link>
     </main>
+    </>
   );
 }

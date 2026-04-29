@@ -38,6 +38,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={initialLocale} className={`${displayFont.variable} ${bodyFont.variable} ${priceFont.variable}`}>
+      <head>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-F9EY1KF98E" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-F9EY1KF98E');
+            `,
+          }}
+        />
+      </head>
       <body className="app-shell antialiased">
         <div className="site-ambience" aria-hidden="true">
           <span className="site-ambience__blob site-ambience__blob--rose" />
