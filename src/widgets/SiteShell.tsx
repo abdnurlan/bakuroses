@@ -9,7 +9,7 @@ import { FloatingCartButton } from '@/features/cart/FloatingCartButton';
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith('/admin');
-  const showNavbar = pathname === '/v2' || pathname.startsWith('/v2/');
+  const showNavbar = !isAdmin;
 
   return (
     <>

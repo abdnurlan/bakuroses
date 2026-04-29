@@ -17,9 +17,9 @@ import { AnimatedTitleReveal } from '@/shared/ui/AnimatedTitleReveal';
 import { useLang } from '@/providers/LanguageProvider';
 
 const ABOUT_IMAGES = {
-  main: '/images/studio/about-main.png',
-  detail: '/images/studio/about-detail.png',
-  table: '/images/studio/about-table.png',
+  main: '/images/studio/about-main.webp',
+  detail: '/images/studio/about-detail.webp',
+  table: '/images/studio/about-table.webp',
 };
 
 const ABOUT_STEPS = [
