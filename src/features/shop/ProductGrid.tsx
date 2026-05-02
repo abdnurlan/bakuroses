@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ProductCard } from './ProductCard';
 import { fetchProducts } from '@/api/products';
 import { useLang } from '@/providers/LanguageProvider';
+import { useLocalePath } from '@/hooks/useLocalePath';
 
 const CARD_WIDTH = 320; // px
 const CARD_BLEED_X = 6; // px, so visible card gap stays 12px
@@ -14,6 +15,7 @@ const SPEED = 80;       // px/sec
 
 export function ProductGrid() {
   const { t } = useLang();
+  const lp = useLocalePath();
   const { data: apiProducts } = useQuery({
     queryKey: ['products'],
     queryFn: fetchProducts,
@@ -106,7 +108,7 @@ export function ProductGrid() {
         <div className="product-slider-toolbar-inner">
           <div className="product-slider-head">
             <p className="product-slider-caption">{t('product_count')}</p>
-            <Link href="/shop" className="product-slider-see-all">
+            <Link href={lp('/shop')} className="product-slider-see-all">
               {t('product_see_all')}
             </Link>
           </div>

@@ -140,7 +140,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         ))}
         <div style={{ marginTop: 'auto', display: 'grid', gap: '0.65rem' }}>
           <Link
-            href="/"
+            href="/az"
             style={{
               display: 'block', width: '100%', boxSizing: 'border-box',
               padding: '0.65rem 0.85rem', borderRadius: 10,

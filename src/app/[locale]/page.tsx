@@ -11,6 +11,7 @@ import { RevealOnScroll } from '@/shared/ui/RevealOnScroll';
 import { Testimonials } from '@/features/shop/Testimonials';
 import { SiteFooter } from '@/features/shop/SiteFooter';
 import { useLang } from '@/providers/LanguageProvider';
+import { useLocalePath } from '@/hooks/useLocalePath';
 import { CategorySection } from '@/features/shop/CategorySection';
 
 const fadeUp = {
@@ -26,6 +27,7 @@ const CTA_STATS = [
 
 export default function HomePage() {
   const { t } = useLang();
+  const lp = useLocalePath();
 
   return (
     <main>
@@ -79,7 +81,7 @@ export default function HomePage() {
             </motion.p>
 
             <motion.div className="final-cta-actions" variants={fadeUp}>
-              <Link href="/shop" className="final-cta-btn-primary">
+              <Link href={lp('/shop')} className="final-cta-btn-primary">
                 {t('cta_btn_collection')}
               </Link>
             </motion.div>

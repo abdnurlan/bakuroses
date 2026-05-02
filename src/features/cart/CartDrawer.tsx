@@ -9,12 +9,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/shared/store';
 import { EASE, DURATION } from '@/lib/animation-tokens';
 import { useLang } from '@/providers/LanguageProvider';
+import { useLocalePath } from '@/hooks/useLocalePath';
 
 
 export function CartDrawer() {
   const drawerRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<HTMLDivElement>(null);
   const { t } = useLang();
+  const lp = useLocalePath();
 
   const ui = useAppStore((s) => s.ui);
   const cartItems = useAppStore((s) => s.cartItems);
@@ -219,7 +221,7 @@ export function CartDrawer() {
             </span>
           </div>
           <Link
-            href="/order"
+            href={lp('/order')}
             onClick={() => setUI({ isCartOpen: false })}
             style={{
               display: 'inline-flex',

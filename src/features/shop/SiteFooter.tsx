@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useLang } from '@/providers/LanguageProvider';
+import { useLocalePath } from '@/hooks/useLocalePath';
 import type { TranslationKey } from '@/lib/i18n';
 import {
   InstagramLogo,
@@ -39,6 +40,7 @@ const fadeUp = {
 
 export function SiteFooter() {
   const { t } = useLang();
+  const lp = useLocalePath();
   const year = new Date().getFullYear();
 
   return (
@@ -56,7 +58,7 @@ export function SiteFooter() {
         >
           {/* Brand col */}
           <motion.div className="sf-brand-col" variants={fadeUp}>
-            <Link href="/" className="sf-logo-link">
+            <Link href={lp('/')} className="sf-logo-link">
               <span className="sf-wordmark">Baku Roses</span>
             </Link>
             <p className="sf-tagline">
@@ -86,7 +88,7 @@ export function SiteFooter() {
             <ul className="sf-link-list">
               {NAV_LINKS.map(({ labelKey, href }) => (
                 <li key={labelKey}>
-                  <Link href={href} className="sf-link">
+                  <Link href={lp(href)} className="sf-link">
                     <ArrowUpRight size={14} weight="bold" className="sf-link-icon" />
                     {t(labelKey)}
                   </Link>

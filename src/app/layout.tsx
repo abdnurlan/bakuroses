@@ -1,15 +1,11 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
 import { Inter, Playfair_Display, Plus_Jakarta_Sans } from 'next/font/google';
 import { MotionConfig } from 'framer-motion';
+import Script from 'next/script';
 import './globals.css';
 import { LenisProvider } from '@/widgets/LenisProvider';
-import { PageTransition } from '@/widgets/PageTransition';
-import { SiteShell } from '@/widgets/SiteShell';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { ToastProvider } from '@/providers/ToastProvider';
-import { LanguageProvider } from '@/providers/LanguageProvider';
-import { LANGUAGE_COOKIE, isLocale } from '@/lib/i18n';
 
 const displayFont = Playfair_Display({
   subsets: ['latin'],
@@ -32,26 +28,20 @@ export const metadata: Metadata = {
   description: 'Bakıda seçilmiş buketlər, premium gül kompozisiyaları və zövqlə hazırlanmış çatdırılma təcrübəsi.',
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const storedLocale = (await cookies()).get(LANGUAGE_COOKIE)?.value;
-  const initialLocale = isLocale(storedLocale) ? storedLocale : 'az';
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang={initialLocale} className={`${displayFont.variable} ${bodyFont.variable} ${priceFont.variable}`}>
-      <head>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-F9EY1KF98E" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-F9EY1KF98E');
-            `,
-          }}
-        />
-      </head>
+    <html className={`${displayFont.variable} ${bodyFont.variable} ${priceFont.variable}`}>
       <body className="app-shell antialiased">
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-F9EY1KF98E"
+          strategy="afterInteractive"
+        />
+        <Script id="gtag-init" strategy="afterInteractive">{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-F9EY1KF98E');
+        `}</Script>
         <div className="site-ambience" aria-hidden="true">
           <span className="site-ambience__blob site-ambience__blob--rose" />
           <span className="site-ambience__blob site-ambience__blob--olive" />
@@ -59,16 +49,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <span className="site-ambience__grain" />
         </div>
         <QueryProvider>
-          <LanguageProvider initialLocale={initialLocale}>
-            <MotionConfig reducedMotion="user">
-              <LenisProvider>
-                <SiteShell>
-                  <PageTransition>{children}</PageTransition>
-                </SiteShell>
-                <ToastProvider />
-              </LenisProvider>
-            </MotionConfig>
-          </LanguageProvider>
+          <MotionConfig reducedMotion="user">
+            <LenisProvider>
+              {children}
+              <ToastProvider />
+            </LenisProvider>
+          </MotionConfig>
         </QueryProvider>
       </body>
     </html>

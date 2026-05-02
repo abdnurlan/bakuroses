@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import { useLocalePath } from '@/hooks/useLocalePath';
 
 function ClockIcon() {
   return (
@@ -41,6 +42,7 @@ function HomeIcon() {
 
 function ResultContent() {
   const params = useSearchParams();
+  const lp = useLocalePath();
   const status = params.get('status') ?? '';
   const isSuccess = status === '1' || status === 'success';
 
@@ -102,7 +104,7 @@ function ResultContent() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           <Link
-            href="/"
+            href={lp('/')}
             style={{
               display: 'flex',
               alignItems: 'center',

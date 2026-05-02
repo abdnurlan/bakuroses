@@ -1,5 +1,7 @@
 export type Locale = 'az' | 'en' | 'ru';
 
+export const LOCALES = ['az', 'en', 'ru'] as const;
+export const DEFAULT_LOCALE: Locale = 'az';
 export const LANGUAGE_COOKIE = 'br_lang';
 
 export function isLocale(value: string | undefined | null): value is Locale {

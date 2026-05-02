@@ -4,8 +4,10 @@ import Script from 'next/script';
 import Link from 'next/link';
 import { House } from '@phosphor-icons/react';
 import { DeliverySuccessOverlay } from '@/features/order/DeliverySuccessOverlay';
+import { useLocalePath } from '@/hooks/useLocalePath';
 
 export default function SuccessPage() {
+  const lp = useLocalePath();
   return (
     <>
       <Script id="ga-conversion" strategy="afterInteractive">
@@ -23,7 +25,7 @@ export default function SuccessPage() {
       <DeliverySuccessOverlay />
 
       <Link
-        href="/"
+        href={lp('/')}
         className="order-success-home"
         style={{
           position: 'absolute',

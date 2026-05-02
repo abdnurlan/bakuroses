@@ -93,6 +93,9 @@ export function HeroCanvasScrub() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return false;
 
+    if (canvasSizeRef.current.w === 0 || canvasSizeRef.current.h === 0) {
+      syncCanvasSize();
+    }
     const { w, h } = canvasSizeRef.current;
     if (w === 0 || h === 0) return false;
 
@@ -104,7 +107,7 @@ export function HeroCanvasScrub() {
 
     ctx.drawImage(image, dx, dy, dw, dh);
     return true;
-  }, []);
+  }, [syncCanvasSize]);
 
   // ── Nearest-frame fallback ────────────────────────────────────────
   const renderNearest = useCallback(
@@ -164,8 +167,14 @@ export function HeroCanvasScrub() {
         loadedCountRef.current += 1;
 
         if (virtualIndex === 0) {
-          syncCanvasSize();
-          setIsSequenceReady(true);
+          // Defer to next paint so canvas has layout dimensions
+          requestAnimationFrame(() => {
+            if (cancelled) return;
+            syncCanvasSize();
+            setIsSequenceReady(true);
+            scheduleRender(0);
+          });
+          return;
         }
 
         if (virtualIndex === currentFrameRef.current || loadedCountRef.current === 1) {

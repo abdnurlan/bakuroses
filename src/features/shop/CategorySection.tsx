@@ -10,6 +10,7 @@ import { fetchCategories, type Category } from '@/api/categories';
 import { RevealOnScroll } from '@/shared/ui/RevealOnScroll';
 import { AnimatedTitleReveal } from '@/shared/ui/AnimatedTitleReveal';
 import { useLang } from '@/providers/LanguageProvider';
+import { useLocalePath } from '@/hooks/useLocalePath';
 import { getCategoryDescription, getCategoryName } from '@/lib/i18n';
 
 const FALLBACK_CATEGORIES: Category[] = [];
@@ -114,6 +115,7 @@ function CategoryCard({ cat, index }: { cat: Category; index: number }) {
 
 export function CategorySection() {
   const { t } = useLang();
+  const lp = useLocalePath();
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -142,7 +144,7 @@ export function CategorySection() {
       </div>
 
       <RevealOnScroll variant="fade" style={{ marginTop: '3rem', textAlign: 'center' }}>
-        <Link href="/shop" className="cat-section__see-all">
+        <Link href={lp('/shop')} className="cat-section__see-all">
           {t('cat_section_see_all')}
           <ArrowRight size={16} weight="bold" />
         </Link>

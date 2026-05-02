@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ChatCircleText, FlowerTulip, List, UserFocus, X } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CartButton } from '@/features/cart/CartButton';
@@ -13,9 +13,10 @@ import { type Locale } from '@/lib/i18n';
 
 let anchorScrollId = 0;
 
-const SECTION_ROUTES: Record<string, string> = {
-  '/about': 'about',
-  '/testimonials': 'testimonials',
+// Maps the last path segment to the on-page section id for same-page scroll
+const SECTION_SEGMENTS: Record<string, string> = {
+  'about': 'about',
+  'testimonials': 'testimonials',
 };
 
 function easeInOutCubic(t: number) {
@@ -44,9 +45,13 @@ function NavLink({ label, href, icon, onNavigate, mobile }: {
   const pathname = usePathname();
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    const sectionId = SECTION_ROUTES[href];
+    // href is e.g. /az/about — last segment is the key
+    const lastSegment = href.split('/').pop() ?? '';
+    const sectionId = SECTION_SEGMENTS[lastSegment];
+    // pathname is /az or /en etc. when on home
+    const isHome = pathname.split('/').length === 2;
 
-    if (pathname === '/' && sectionId) {
+    if (isHome && sectionId) {
       const target = document.getElementById(sectionId);
 
       if (target) {
@@ -92,11 +97,23 @@ export function Navbar() {
   const langRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { locale, setLocale, t } = useLang();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const switchLocale = (code: Locale) => {
+    setLocale(code);
+    // Replace the locale segment: /az/shop → /en/shop
+    const segments = pathname.split('/');
+    segments[1] = code;
+    router.push(segments.join('/') || `/${code}`);
+  };
+
+  const lp = (path: string) => `/${locale}${path}`;
 
   const navLinks = [
-    { label: t('nav_collection'), href: '/shop', icon: <FlowerTulip size={15} weight="duotone" /> },
-    { label: t('nav_about'), href: '/about', icon: <UserFocus size={15} weight="duotone" /> },
-    { label: t('nav_testimonials'), href: '/testimonials', icon: <ChatCircleText size={15} weight="duotone" /> },
+    { label: t('nav_collection'), href: lp('/shop'), icon: <FlowerTulip size={15} weight="duotone" /> },
+    { label: t('nav_about'), href: lp('/about'), icon: <UserFocus size={15} weight="duotone" /> },
+    { label: t('nav_testimonials'), href: lp('/testimonials'), icon: <ChatCircleText size={15} weight="duotone" /> },
   ];
 
   return (
@@ -105,7 +122,7 @@ export function Navbar() {
         <nav className={`bk-navbar${isCondensed ? ' is-condensed' : ''}`}>
           {/* LEFT — brand */}
           <div className="bk-navbar__brand-col">
-            <Link href="/" className="bk-navbar__brand" onClick={() => setMobileOpen(false)}>
+            <Link href={lp('')} className="bk-navbar__brand" onClick={() => setMobileOpen(false)}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo.avif" alt="Baku Roses" width={46} height={46} className="bk-navbar__logo" />
             </Link>
@@ -153,7 +170,7 @@ export function Navbar() {
                         key={item.code}
                         type="button"
                         className={`bk-lang__option${item.code === locale ? ' is-active' : ''}`}
-                        onClick={() => { setLocale(item.code); setLangOpen(false); }}
+                        onClick={() => { switchLocale(item.code); setLangOpen(false); }}
                       >
                         <span className="bk-lang__option-code">{item.label}</span>
                         <span className="bk-lang__option-name">{item.name}</span>
@@ -211,7 +228,7 @@ export function Navbar() {
                     key={item.code}
                     type="button"
                     className={`bk-navbar__mobile-lang-btn${item.code === locale ? ' is-active' : ''}`}
-                    onClick={() => { setLocale(item.code); setMobileOpen(false); }}
+                    onClick={() => { switchLocale(item.code); setMobileOpen(false); }}
                   >
                     {item.label}
                   </button>

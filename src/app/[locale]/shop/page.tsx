@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ProductCard } from '@/features/shop/ProductCard';
 import { fetchProducts, fetchCategories, type Category } from '@/api/categories';
 import { useLang } from '@/providers/LanguageProvider';
+import { useLocalePath } from '@/hooks/useLocalePath';
 import { SiteFooter } from '@/features/shop/SiteFooter';
 import { AnimatedTitleReveal } from '@/shared/ui/AnimatedTitleReveal';
 import { useAppStore } from '@/shared/store';
@@ -55,6 +56,7 @@ function FilterAccordion({
 
 function ShopInner() {
   const { locale, t } = useLang();
+  const lp = useLocalePath();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -89,7 +91,8 @@ function ShopInner() {
     if (priceMax != null) params.set('maxPrice', String(priceMax));
     if (sort !== 'default') params.set('sort', sort);
     const query = params.toString();
-    const target = query ? `/shop?${query}` : '/shop';
+    const shopPath = lp('/shop');
+    const target = query ? `${shopPath}?${query}` : shopPath;
     const current = typeof window !== 'undefined'
       ? `${window.location.pathname}${window.location.search}`
       : target;
@@ -278,7 +281,7 @@ function ShopInner() {
           {/* Header */}
           <div className="shop-main-head">
             <div className="shop-head-copy">
-              <Link href="/" className="shop-home-link" aria-label="Ana səhifəyə qayıt">
+              <Link href={lp('/')} className="shop-home-link" aria-label="Ana səhifəyə qayıt">
                 <CaretLeft size={15} weight="bold" />
                 <span>Geri</span>
               </Link>

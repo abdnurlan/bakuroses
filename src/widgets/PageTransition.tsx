@@ -4,14 +4,12 @@ import { useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { gsap } from 'gsap';
 
-const OVERLAY_COLORS: Record<string, string> = {
-  '/':      '#ffc2d1',
-  '/shop':  '#d1f5dd',
-};
-
+// Matches the last segment(s) of the locale-prefixed path e.g. /az/shop → /shop
 function getOverlayColor(pathname: string): string {
-  if (pathname.startsWith('/product')) return '#fff8f5';
-  return OVERLAY_COLORS[pathname] ?? '#ffc2d1';
+  const bare = pathname.replace(/^\/(az|en|ru)/, '') || '/';
+  if (bare.startsWith('/shop')) return '#d1f5dd';
+  if (bare.startsWith('/product')) return '#fff8f5';
+  return '#ffc2d1';
 }
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
@@ -24,7 +22,12 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
     if (isAdmin) return;
 
     const overlay = overlayRef.current;
-    if (!overlay || prevPathRef.current === pathname) return;
+    // Skip the very first mount — no wipe on initial page load
+    if (!overlay || prevPathRef.current === null) {
+      prevPathRef.current = pathname;
+      return;
+    }
+    if (prevPathRef.current === pathname) return;
     prevPathRef.current = pathname;
 
     overlay.style.backgroundColor = getOverlayColor(pathname);

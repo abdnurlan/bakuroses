@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Suspense } from 'react';
+import { useLocalePath } from '@/hooks/useLocalePath';
 
 function XIcon() {
   return (
@@ -36,6 +37,7 @@ function HomeIcon() {
 }
 
 function ErrorContent() {
+  const lp = useLocalePath();
   return (
     <main style={{
       minHeight: '100vh',
@@ -92,7 +94,7 @@ function ErrorContent() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           <Link
-            href="/order"
+            href={lp('/order')}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -112,7 +114,7 @@ function ErrorContent() {
           </Link>
 
           <Link
-            href="/"
+            href={lp('/')}
             style={{
               display: 'flex',
               alignItems: 'center',

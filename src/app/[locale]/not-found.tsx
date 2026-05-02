@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useLocalePath } from '@/hooks/useLocalePath';
 
 function RoseIcon() {
   return (
@@ -40,6 +43,7 @@ function ShopIcon() {
 }
 
 export default function NotFound() {
+  const lp = useLocalePath();
   return (
     <main style={{
       minHeight: '100vh',
@@ -97,7 +101,7 @@ export default function NotFound() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           <Link
-            href="/"
+            href={lp('/')}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -117,7 +121,7 @@ export default function NotFound() {
           </Link>
 
           <Link
-            href="/shop"
+            href={lp('/shop')}
             style={{
               display: 'flex',
               alignItems: 'center',
