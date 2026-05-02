@@ -13,6 +13,7 @@ import { createOrder, type OrderItem } from '@/api/orders';
 import { validatePromoCode, type PromoValidateResult } from '@/api/promoCodes';
 import { useAppStore } from '@/shared/store';
 import { useLang } from '@/providers/LanguageProvider';
+import { useLocalePath } from '@/hooks/useLocalePath';
 import type { TranslationKey } from '@/lib/i18n';
 
 type FormField = 'name' | 'phone' | 'recipientName' | 'recipientPhone' | 'address' | 'map' | 'cart';
@@ -21,6 +22,7 @@ type DeliveryFor = 'self' | 'gift';
 export function OrderForm() {
   const router = useRouter();
   const { t } = useLang();
+  const lp = useLocalePath();
   const cartItems = useAppStore((s) => s.cartItems);
   const clearCart = useAppStore((s) => s.removeFromCart);
 
@@ -75,7 +77,7 @@ export function OrderForm() {
         window.location.href = data.paymentUrl;
       } else {
         cartItems.forEach((item) => clearCart(item.product.id));
-        router.push(`/success?order_id=${data.orderId}`);
+        router.push(`${lp('/success')}?order_id=${data.orderId}`);
       }
     },
     onError: () => {
