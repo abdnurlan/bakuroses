@@ -1,31 +1,51 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../lib/asyncHandler';
-import { verifyEpointSignature } from '../services/epoint';
+import { getPayriffOrderStatus, type PayriffCallbackPayload } from '../services/payriff';
 import { emitOrderStatus } from '../services/socket';
 import { adminGuard } from '../middleware/adminGuard';
 
 const router = Router();
 
+// Payriff POSTs here when payment status changes.
+// Payriff does not sign callbacks, so we cross-verify by calling their API directly.
 router.post('/callback', asyncHandler(async (req, res) => {
-  const { data, signature } = req.body as { data: string; signature: string };
+  const body = req.body as { code?: string; payload?: PayriffCallbackPayload };
 
-  if (!verifyEpointSignature(data, signature)) {
-    res.status(401).json({ error: 'Invalid signature' });
+  const payriffOrderId = body?.payload?.orderId;
+  if (!payriffOrderId) {
+    res.status(400).json({ error: 'Missing orderId in callback' });
     return;
   }
 
-  let decoded: { status: string; order_id: string; transaction: string; amount: number };
+  // Cross-verify with Payriff API — do not trust the callback body alone
+  let verified: PayriffCallbackPayload;
   try {
-    decoded = JSON.parse(Buffer.from(data, 'base64').toString());
-  } catch {
-    res.status(400).json({ error: 'Invalid payload' });
+    verified = await getPayriffOrderStatus(payriffOrderId);
+  } catch (err) {
+    console.error('Payriff status check failed:', err);
+    res.status(502).json({ error: 'Could not verify payment status' });
     return;
   }
 
-  const isPaid = decoded.status === 'success';
+  const internalOrderId = verified.transactions?.[0]
+    ? undefined
+    : undefined;
+
+  // Payriff stores our internalOrderId in metadata — it comes back in the callback body
+  const metadata = (req.body as { payload?: { metadata?: { internalOrderId?: string } } })
+    ?.payload?.metadata;
+  const orderId = metadata?.internalOrderId;
+
+  if (!orderId) {
+    res.status(400).json({ error: 'Missing internalOrderId in callback metadata' });
+    return;
+  }
+
+  const isPaid = verified.paymentStatus === 'APPROVED';
+
   const order = await prisma.order.findUnique({
-    where: { id: decoded.order_id },
+    where: { id: orderId },
     select: { id: true, total: true, promoCodeId: true },
   });
 
@@ -34,34 +54,34 @@ router.post('/callback', asyncHandler(async (req, res) => {
     return;
   }
 
-  if (Math.abs(order.total - decoded.amount) > 0.01) {
+  if (isPaid && Math.abs(order.total - verified.amount) > 0.01) {
     res.status(400).json({ error: 'Payment amount mismatch' });
     return;
   }
 
   const existingPayment = await prisma.payment.findUnique({
-    where: { orderId: decoded.order_id },
+    where: { orderId },
     select: { status: true },
   });
   const wasAlreadyPaid = existingPayment?.status === 'PAID';
 
   await prisma.payment.upsert({
-    where: { orderId: decoded.order_id },
+    where: { orderId },
     update: {
       status: isPaid ? 'PAID' : 'FAILED',
-      transactionId: decoded.transaction,
+      transactionId: payriffOrderId,
     },
     create: {
-      orderId: decoded.order_id,
-      amount: decoded.amount,
+      orderId,
+      amount: verified.amount,
       status: isPaid ? 'PAID' : 'FAILED',
-      transactionId: decoded.transaction,
+      transactionId: payriffOrderId,
     },
   });
 
   if (isPaid) {
     await prisma.order.update({
-      where: { id: decoded.order_id },
+      where: { id: orderId },
       data: { status: 'CONFIRMED' },
     });
     if (order.promoCodeId && !wasAlreadyPaid) {
@@ -70,7 +90,7 @@ router.post('/callback', asyncHandler(async (req, res) => {
         data: { usedCount: { increment: 1 } },
       });
     }
-    emitOrderStatus(decoded.order_id, 'CONFIRMED');
+    emitOrderStatus(orderId, 'CONFIRMED');
   }
 
   res.json({ status: 'ok' });

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../lib/asyncHandler';
 import { generateOrderCode } from '../services/orderCode';
-import { createEpointPayment } from '../services/epoint';
+import { createPayriffOrder } from '../services/payriff';
 import { queueEmail } from '../services/email';
 import { emitOrderStatus } from '../services/socket';
 import { haversineDistance } from '../services/maps';
@@ -22,10 +22,11 @@ const CreateOrderSchema = z.object({
   lat: z.number(),
   lng: z.number(),
   note: z.string().optional(),
+  scheduledDate: z.string().datetime().optional(),
   items: z
     .array(z.object({ productId: z.string(), quantity: z.number().int().positive() }))
     .min(1),
-  paymentType: z.enum(['epoint']),
+  paymentType: z.enum(['payriff']),
   zoneId: z.string(),
   promoCode: z.string().optional(),
 }).superRefine((data, ctx) => {
@@ -65,7 +66,7 @@ async function notifyByStatus(order: { id: string; code: string; customerName: s
 }
 
 router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
-  const { name, phone, deliveryFor, recipientName, recipientPhone, address, lat, lng, note, items, paymentType, zoneId, promoCode } = req.body;
+  const { name, phone, deliveryFor, recipientName, recipientPhone, address, lat, lng, note, scheduledDate, items, paymentType, zoneId, promoCode } = req.body;
 
   const zone = await prisma.zone.findUnique({ where: { id: zoneId } });
   if (!zone || !zone.isActive) {
@@ -118,7 +119,7 @@ router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
   const deliveryFee = zone.deliveryFee;
   const total = parseFloat((subtotal + deliveryFee - discountAmount).toFixed(2));
 
-  const order = await prisma.order.create({
+  const order = await (prisma.order.create as Function)({
     data: {
       code: generateOrderCode(),
       customerName: name,
@@ -130,6 +131,7 @@ router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
       lat,
       lng,
       note,
+      scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
       total,
       deliveryFee,
       discountAmount,
@@ -148,22 +150,24 @@ router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
     include: { items: { include: { product: true } } },
   });
 
-  const payment = await createEpointPayment({
-    orderId: order.id,
-    amount: total,
-    currency: 'AZN',
-    description: `Order #${order.code}`,
-    successRedirectUrl: `${process.env.CLIENT_URL}/success?order_id=${order.id}`,
-    failRedirectUrl: `${process.env.CLIENT_URL}/error?order_id=${order.id}`,
-  });
-
-  if (payment.status !== 'success' || !payment.redirect_url) {
+  let payriffResult: { payriffOrderId: string; paymentUrl: string };
+  try {
+    payriffResult = await createPayriffOrder({
+      internalOrderId: order.id,
+      amount: total,
+      currency: 'AZN',
+      description: `Sifariş #${order.code}`,
+      callbackUrl: `${process.env.API_URL}/api/payments/callback`,
+      language: 'AZ',
+    });
+  } catch (err) {
+    console.error('Payriff create order error:', err);
     await prisma.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' } });
     res.status(502).json({ error: 'Payment gateway error. Please try again.' });
     return;
   }
 
-  res.json({ orderId: order.id, paymentUrl: payment.redirect_url });
+  res.json({ orderId: order.id, paymentUrl: payriffResult.paymentUrl });
 }));
 
 router.get('/:id', asyncHandler(async (req, res) => {

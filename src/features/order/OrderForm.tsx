@@ -16,7 +16,7 @@ import { useLang } from '@/providers/LanguageProvider';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import type { TranslationKey } from '@/lib/i18n';
 
-type FormField = 'name' | 'phone' | 'recipientName' | 'recipientPhone' | 'address' | 'map' | 'cart';
+type FormField = 'name' | 'phone' | 'recipientName' | 'recipientPhone' | 'address' | 'map' | 'cart' | 'scheduledDate';
 type DeliveryFor = 'self' | 'gift';
 
 export function OrderForm() {
@@ -34,6 +34,7 @@ export function OrderForm() {
     recipientPhone: '',
     address: '',
     note: '',
+    scheduledDate: '',
     lat: null as number | null,
     lng: null as number | null,
   });
@@ -145,6 +146,7 @@ export function OrderForm() {
       if (!form.recipientPhone.trim()) nextErrors.recipientPhone = t('order_err_no_recipient_phone');
     }
     if (!form.address.trim()) nextErrors.address = t('order_err_no_address');
+    if (!form.scheduledDate) nextErrors.scheduledDate = t('order_err_no_scheduled_date');
     if (cartItems.length === 0) nextErrors.cart = t('order_err_empty_cart');
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -169,8 +171,9 @@ export function OrderForm() {
       lat: form.lat!,
       lng: form.lng!,
       note: form.note || undefined,
+      scheduledDate: form.scheduledDate ? new Date(form.scheduledDate).toISOString() : undefined,
       items,
-      paymentType: 'epoint',
+      paymentType: 'payriff',
       zoneId: zone.id,
       promoCode: promoResult ? promoInput.trim() : undefined,
     });
@@ -387,6 +390,60 @@ export function OrderForm() {
             rows={3}
             style={{ ...getInputStyle(), resize: 'vertical' }}
           />
+
+          {/* ── Scheduled delivery date ── */}
+          <div style={{ marginBottom: errors.scheduledDate ? '0.3rem' : '0.75rem' }}>
+            <p className="order-section-label" style={{ marginBottom: '0.45rem' }}>
+              {t('order_scheduled_date_label')}
+            </p>
+            <div style={{ display: 'flex', gap: '0.45rem', marginBottom: '0.45rem', flexWrap: 'wrap' }}>
+              {[
+                { label: t('order_scheduled_date_today'), offset: 0 },
+                { label: t('order_scheduled_date_tomorrow'), offset: 1 },
+              ].map(({ label, offset }) => {
+                const d = new Date();
+                d.setDate(d.getDate() + offset);
+                const val = d.toISOString().slice(0, 10);
+                return (
+                  <button
+                    key={offset}
+                    type="button"
+                    className="order-choice-btn"
+                    data-active={form.scheduledDate === val ? 'true' : undefined}
+                    onClick={() => {
+                      updateField('scheduledDate', val);
+                      setErrors((prev) => ({ ...prev, scheduledDate: undefined }));
+                    }}
+                    style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+              {form.scheduledDate && (
+                <button
+                  type="button"
+                  className="order-choice-btn"
+                  onClick={() => updateField('scheduledDate', '')}
+                  style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem', color: 'var(--color-text-muted)' }}
+                >
+                  {t('order_scheduled_date_clear')}
+                </button>
+              )}
+            </div>
+            <input
+              type="date"
+              value={form.scheduledDate}
+              min={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => {
+                updateField('scheduledDate', e.target.value);
+                setErrors((prev) => ({ ...prev, scheduledDate: undefined }));
+              }}
+              style={getInputStyle(!!errors.scheduledDate)}
+              aria-invalid={!!errors.scheduledDate}
+            />
+          </div>
+          {fieldError('scheduledDate')}
 
           {cartItems.length > 0 && (
             <div

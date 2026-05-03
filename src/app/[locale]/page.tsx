@@ -20,7 +20,7 @@ const fadeUp = {
 };
 
 const CTA_STATS = [
-  { value: '24/7', labelKey: 'cta_stat_delivery' },
+  { value: '08:00–24:00', labelKey: 'cta_stat_delivery' },
   { value: '2020', labelKey: 'cta_stat_since' },
   { value: '100%', labelKey: 'cta_stat_fresh' },
 ] as const;

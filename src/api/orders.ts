@@ -15,8 +15,9 @@ export interface CreateOrderPayload {
   lat: number;
   lng: number;
   note?: string;
+  scheduledDate?: string;
   items: OrderItem[];
-  paymentType: 'epoint';
+  paymentType: 'payriff';
   zoneId: string;
   promoCode?: string;
 }
@@ -39,6 +40,7 @@ export interface Order {
   lat: number;
   lng: number;
   note?: string;
+  scheduledDate?: string | null;
   total: number;
   paymentType: string;
   status: string;

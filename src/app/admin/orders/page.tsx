@@ -25,7 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
 interface Order {
   id: string; code: string; customerName: string; customerPhone: string;
   address: string; total: number; discountAmount: number; status: string; paymentType: string;
-  createdAt: string; note?: string;
+  createdAt: string; note?: string; scheduledDate?: string | null;
   zone: { name: string };
   promoCode?: { code: string } | null;
   items: { quantity: number; price: number; product: { name: string; imageUrl: string } }[];
@@ -92,6 +92,11 @@ export default function AdminOrdersPage() {
             </h2>
             <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem' }}>📞 {selected.customerPhone}</p>
             <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem' }}>📍 {selected.address}</p>
+            {selected.scheduledDate && (
+              <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem' }}>
+                📅 Çatdırılma tarixi: <strong>{new Date(selected.scheduledDate).toLocaleDateString('az-AZ')}</strong>
+              </p>
+            )}
             {selected.note && <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>💬 {selected.note}</p>}
 
             <div style={{ background: '#f9f9f9', borderRadius: 10, padding: '0.75rem', marginBottom: '1rem' }}>
@@ -161,7 +166,7 @@ export default function AdminOrdersPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#fafafa' }}>
-                {['Kod', 'Müştəri', 'Telefon', 'Zona', 'Məbləğ', 'Ödəniş', 'Status', 'Tarix', ''].map((h, index, headers) => (
+                {['Kod', 'Müştəri', 'Telefon', 'Zona', 'Məbləğ', 'Ödəniş', 'Status', 'Tarix', 'Çatdırılma', ''].map((h, index, headers) => (
                   <th
                     key={`${h || 'actions'}-${index}`}
                     style={{ padding: '0.75rem 1rem', textAlign: index === headers.length - 1 ? 'right' : 'left', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: '1px solid var(--color-border)', whiteSpace: 'nowrap' }}
@@ -194,6 +199,15 @@ export default function AdminOrdersPage() {
                   <td style={{ padding: '0.75rem 1rem', fontSize: '0.78rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
                     {new Date(order.createdAt).toLocaleDateString('az-AZ')}
                   </td>
+                  <td style={{ padding: '0.75rem 1rem', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                    {order.scheduledDate ? (
+                      <span style={{ color: '#7c3aed', fontWeight: 600 }}>
+                        📅 {new Date(order.scheduledDate).toLocaleDateString('az-AZ')}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--color-text-muted)' }}>—</span>
+                    )}
+                  </td>
                   <td style={{ padding: '0.75rem 1rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button onClick={() => setSelected(order)} style={{ padding: '0.4rem 0.9rem', borderRadius: 8, border: '1px solid var(--color-border)', background: '#fff', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 600 }}>
                       Detallar
@@ -202,7 +216,7 @@ export default function AdminOrdersPage() {
                 </tr>
               ))}
               {orders.length === 0 && (
-                <tr><td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>Sifariş yoxdur</td></tr>
+                <tr><td colSpan={10} style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>Sifariş yoxdur</td></tr>
               )}
             </tbody>
           </table>

@@ -63,6 +63,7 @@ model Order {
   lat            Float
   lng            Float
   note           String?
+  scheduledDate  DateTime?
   total          Float
   paymentType    String
   status         OrderStatus @default(PENDING_PAYMENT)
