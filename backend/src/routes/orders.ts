@@ -249,10 +249,20 @@ router.get('/', adminGuard, asyncHandler(async (req, res) => {
   const page = Number(req.query.page ?? 1);
   const limit = Number(req.query.limit ?? 20);
   const skip = (page - 1) * limit;
+
   const status = typeof req.query.status === 'string' && ORDER_STATUSES.includes(req.query.status as typeof ORDER_STATUSES[number])
     ? req.query.status as typeof ORDER_STATUSES[number]
     : undefined;
-  const where = status ? { status } : {};
+
+  const excludeStatus = typeof req.query.excludeStatus === 'string' && ORDER_STATUSES.includes(req.query.excludeStatus as typeof ORDER_STATUSES[number])
+    ? req.query.excludeStatus as typeof ORDER_STATUSES[number]
+    : undefined;
+
+  const where = status
+    ? { status }
+    : excludeStatus
+      ? { status: { not: excludeStatus } }
+      : {};
 
   const [orders, total] = await Promise.all([
     prisma.order.findMany({
