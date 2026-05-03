@@ -88,15 +88,23 @@ router.post('/callback', asyncHandler(async (req, res) => {
 }));
 
 // Payriff redirects customer browser here after payment (GET)
-// Just forward them to the frontend success/error page
 router.get('/callback', asyncHandler(async (req, res) => {
   const clientUrl = process.env.CLIENT_URL ?? 'https://bakuroses.az';
-  const orderId = req.query.order_id ?? req.query.orderId;
-  if (orderId) {
-    res.redirect(`${clientUrl}/success?order_id=${orderId}`);
-  } else {
-    res.redirect(`${clientUrl}/`);
+  // Payriff sends orderID (their ID) — find our internal order by transactionId
+  const payriffOrderId = (req.query.orderID ?? req.query.orderId ?? req.query.order_id) as string | undefined;
+
+  if (payriffOrderId) {
+    const payment = await prisma.payment.findFirst({
+      where: { transactionId: payriffOrderId },
+      select: { orderId: true },
+    });
+    if (payment) {
+      res.redirect(`${clientUrl}/az/success?order_id=${payment.orderId}`);
+      return;
+    }
   }
+
+  res.redirect(`${clientUrl}/az/`);
 }));
 
 router.get('/:orderId', adminGuard, asyncHandler(async (req, res) => {

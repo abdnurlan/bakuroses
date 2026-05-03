@@ -169,7 +169,7 @@ export default function AdminOrdersPage() {
                 <div style={{ ...infoCard, gridColumn: '1 / -1' }}>
                   <p style={infoLabel}>Çatdırılma tarixi</p>
                   <p style={{ ...infoValue, color: '#7c3aed', fontWeight: 600 }}>
-                    {new Date(selected.scheduledDate).toLocaleDateString('az-AZ', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    {new Date(selected.scheduledDate).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
                 </div>
               )}
