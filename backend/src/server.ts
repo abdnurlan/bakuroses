@@ -48,6 +48,9 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
+// Payriff callback must be open to all origins — it comes from Payriff servers
+app.use('/api/payments/callback', cors({ origin: '*' }));
+
 app.use('/api/zones', zonesRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/payments', paymentsRouter);
