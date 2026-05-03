@@ -44,7 +44,7 @@ const STATUS_MESSAGES: Record<string, { title: string; body: string }> = {
   CANCELLED: { title: '❌ Ləğv Edildi', body: 'Sifarişiniz ləğv edildi.' },
 };
 
-const ORDER_STATUSES = ['PENDING_PAYMENT', 'CONFIRMED', 'CANCELLED'] as const;
+const ORDER_STATUSES = ['PENDING_PAYMENT', 'CONFIRMED', 'PREPARING', 'ON_THE_WAY', 'DELIVERED', 'CANCELLED'] as const;
 
 const UpdateStatusSchema = z.object({
   status: z.enum(ORDER_STATUSES),

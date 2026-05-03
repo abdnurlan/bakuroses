@@ -5,20 +5,38 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 
-const STATUS_OPTIONS = [
-  { value: 'CONFIRMED', label: '✅ Təsdiqləndi' },
-  { value: 'CANCELLED', label: '❌ Ləğv edildi' },
-];
+const STATUS_FLOW: Record<string, { value: string; label: string }[]> = {
+  PENDING_PAYMENT: [],
+  CONFIRMED: [
+    { value: 'PREPARING', label: '👨‍🍳 Hazırlanır' },
+    { value: 'CANCELLED', label: '❌ Ləğv et' },
+  ],
+  PREPARING: [
+    { value: 'ON_THE_WAY', label: '🚗 Yoldadır' },
+    { value: 'CANCELLED', label: '❌ Ləğv et' },
+  ],
+  ON_THE_WAY: [
+    { value: 'DELIVERED', label: '📦 Çatdırıldı' },
+  ],
+  DELIVERED: [],
+  CANCELLED: [],
+};
 
 const STATUS_FILTER_OPTIONS = [
   { value: 'PENDING_PAYMENT', label: '⏳ Ödəniş gözlənilir' },
   { value: 'CONFIRMED', label: '✅ Təsdiqləndi' },
+  { value: 'PREPARING', label: '👨‍🍳 Hazırlanır' },
+  { value: 'ON_THE_WAY', label: '🚗 Yoldadır' },
+  { value: 'DELIVERED', label: '📦 Çatdırıldı' },
   { value: 'CANCELLED', label: '❌ Ləğv edildi' },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING_PAYMENT: '#f59e0b',
   CONFIRMED: '#22c55e',
+  PREPARING: '#3b82f6',
+  ON_THE_WAY: '#8b5cf6',
+  DELIVERED: '#10b981',
   CANCELLED: '#ef4444',
 };
 
@@ -135,24 +153,36 @@ export default function AdminOrdersPage() {
             <p style={{ fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
               Statusu dəyiş
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-              {STATUS_OPTIONS.map(s => (
-                <button
-                  key={s.value}
-                  onClick={() => statusMutation.mutate({ id: selected.id, status: s.value })}
-                  disabled={selected.status === s.value || statusMutation.isPending}
-                  style={{
-                    padding: '0.5rem 0.9rem', borderRadius: 20, border: 'none', cursor: 'pointer',
-                    fontSize: '0.8rem', fontWeight: 600,
-                    background: selected.status === s.value ? 'var(--color-accent-strong)' : '#f0f0f0',
-                    color: selected.status === s.value ? '#fff' : 'var(--color-text)',
-                    opacity: statusMutation.isPending ? 0.6 : 1,
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
+            {selected.status === 'PENDING_PAYMENT' && (
+              <p style={{ fontSize: '0.82rem', color: '#f59e0b', marginBottom: '1rem' }}>
+                ⏳ Ödəniş təsdiqlənməsi gözlənilir — avtomatik keçəcək
+              </p>
+            )}
+            {(STATUS_FLOW[selected.status] ?? []).length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                {(STATUS_FLOW[selected.status] ?? []).map(s => (
+                  <button
+                    key={s.value}
+                    onClick={() => statusMutation.mutate({ id: selected.id, status: s.value })}
+                    disabled={statusMutation.isPending}
+                    style={{
+                      padding: '0.5rem 0.9rem', borderRadius: 20, border: 'none', cursor: 'pointer',
+                      fontSize: '0.8rem', fontWeight: 600,
+                      background: s.value === 'CANCELLED' ? '#fee2e2' : 'var(--color-accent-strong)',
+                      color: s.value === 'CANCELLED' ? '#ef4444' : '#fff',
+                      opacity: statusMutation.isPending ? 0.6 : 1,
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {(STATUS_FLOW[selected.status] ?? []).length === 0 && selected.status !== 'PENDING_PAYMENT' && (
+              <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+                Bu status üçün növbəti addım yoxdur.
+              </p>
+            )}
 
             <button onClick={() => setSelected(null)} style={btnSecondary}>Bağla</button>
           </div>
@@ -193,7 +223,7 @@ export default function AdminOrdersPage() {
                       background: `${STATUS_COLORS[order.status]}22`, color: STATUS_COLORS[order.status],
                       whiteSpace: 'nowrap',
                     }}>
-                      {STATUS_FILTER_OPTIONS.find(s => s.value === order.status)?.label ?? order.status}
+                      {STATUS_FILTER_OPTIONS.find(s => s.value === order.status)?.label ?? order.status.replace(/_/g, ' ')}
                     </span>
                   </td>
                   <td style={{ padding: '0.75rem 1rem', fontSize: '0.78rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
