@@ -286,8 +286,8 @@ export default function AdminProductsPage() {
             <label style={labelStyle}>Qiymət (₼) *</label>
             <input
               type="number"
-              min={0}
-              step={0.5}
+              min={0.01}
+              step={0.01}
               placeholder="0"
               value={form.price || ''}
               onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))}

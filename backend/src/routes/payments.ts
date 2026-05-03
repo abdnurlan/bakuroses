@@ -96,6 +96,18 @@ router.post('/callback', asyncHandler(async (req, res) => {
   res.json({ status: 'ok' });
 }));
 
+// Payriff redirects customer browser here after payment (GET)
+// Just forward them to the frontend success/error page
+router.get('/callback', asyncHandler(async (req, res) => {
+  const clientUrl = process.env.CLIENT_URL ?? 'https://bakuroses.az';
+  const orderId = req.query.order_id ?? req.query.orderId;
+  if (orderId) {
+    res.redirect(`${clientUrl}/success?order_id=${orderId}`);
+  } else {
+    res.redirect(`${clientUrl}/`);
+  }
+}));
+
 router.get('/:orderId', adminGuard, asyncHandler(async (req, res) => {
   const payment = await prisma.payment.findUnique({
     where: { orderId: req.params.orderId },

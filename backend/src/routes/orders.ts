@@ -161,6 +161,7 @@ router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
       approveUrl: `${process.env.CLIENT_URL}/success?order_id=${order.id}`,
       cancelUrl: `${process.env.CLIENT_URL}/error?order_id=${order.id}`,
       declineUrl: `${process.env.CLIENT_URL}/error?order_id=${order.id}`,
+      // approveUrl/cancelUrl/declineUrl redirect customer directly to frontend
       language: 'AZ',
     });
   } catch (err) {
