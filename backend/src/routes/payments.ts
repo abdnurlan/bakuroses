@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../lib/asyncHandler';
-import { getPayriffOrderStatus, type PayriffCallbackPayload } from '../services/payriff';
 import { emitOrderStatus } from '../services/socket';
 import { adminGuard } from '../middleware/adminGuard';
 
@@ -10,78 +9,70 @@ const router = Router();
 // Payriff POSTs here when payment status changes.
 // Payriff does not sign callbacks, so we cross-verify by calling their API directly.
 router.post('/callback', asyncHandler(async (req, res) => {
-  console.log('Payriff callback body:', JSON.stringify(req.body, null, 2));
+  const payload = req.body?.payload as {
+    orderID?: string;
+    orderStatus?: string;
+    orderDescription?: string;
+    purchaseAmountScr?: number;
+  } | undefined;
 
-  const body = req.body as { code?: string; payload?: PayriffCallbackPayload & { metadata?: Record<string, string> } };
-
-  const payriffOrderId = body?.payload?.orderId;
-  if (!payriffOrderId) {
-    res.status(400).json({ error: 'Missing orderId in callback' });
+  if (!payload?.orderID) {
+    res.status(400).json({ error: 'Missing orderID' });
     return;
   }
 
-  // Cross-verify with Payriff API — do not trust the callback body alone
-  let verified: PayriffCallbackPayload;
-  try {
-    verified = await getPayriffOrderStatus(payriffOrderId);
-  } catch (err) {
-    console.error('Payriff status check failed:', err);
-    res.status(502).json({ error: 'Could not verify payment status' });
+  // Extract order code from orderDescription: "Sifariş #BR-XXXXXXXX-XXXX"
+  const codeMatch = payload.orderDescription?.match(/BR-[A-Z0-9]+-[A-Z0-9]+/);
+  if (!codeMatch) {
+    console.error('Cannot extract order code from description:', payload.orderDescription);
+    res.status(400).json({ error: 'Cannot extract order code' });
     return;
   }
+  const orderCode = codeMatch[0];
 
-  console.log('Payriff verified payload:', JSON.stringify(verified, null, 2));
-
-  // Try metadata from callback body first, then from verified payload
-  const metadata = body?.payload?.metadata ?? (verified as unknown as { metadata?: Record<string, string> })?.metadata;
-  const orderId = metadata?.internalOrderId;
-
-  if (!orderId) {
-    console.error('Missing internalOrderId, metadata was:', metadata);
-    res.status(400).json({ error: 'Missing internalOrderId in callback metadata' });
-    return;
-  }
-
-  const isPaid = verified.paymentStatus === 'APPROVED';
+  const isPaid = payload.orderStatus === 'APPROVED';
+  const paidAmount = payload.purchaseAmountScr ?? 0;
 
   const order = await prisma.order.findUnique({
-    where: { id: orderId },
+    where: { code: orderCode },
     select: { id: true, total: true, promoCodeId: true },
   });
 
   if (!order) {
+    console.error('Order not found for code:', orderCode);
     res.status(404).json({ error: 'Order not found' });
     return;
   }
 
-  if (isPaid && Math.abs(order.total - verified.amount) > 0.01) {
+  if (isPaid && Math.abs(order.total - paidAmount) > 0.01) {
+    console.error('Amount mismatch: expected', order.total, 'got', paidAmount);
     res.status(400).json({ error: 'Payment amount mismatch' });
     return;
   }
 
   const existingPayment = await prisma.payment.findUnique({
-    where: { orderId },
+    where: { orderId: order.id },
     select: { status: true },
   });
   const wasAlreadyPaid = existingPayment?.status === 'PAID';
 
   await prisma.payment.upsert({
-    where: { orderId },
+    where: { orderId: order.id },
     update: {
       status: isPaid ? 'PAID' : 'FAILED',
-      transactionId: payriffOrderId,
+      transactionId: payload.orderID,
     },
     create: {
-      orderId,
-      amount: verified.amount,
+      orderId: order.id,
+      amount: paidAmount,
       status: isPaid ? 'PAID' : 'FAILED',
-      transactionId: payriffOrderId,
+      transactionId: payload.orderID,
     },
   });
 
   if (isPaid) {
     await prisma.order.update({
-      where: { id: orderId },
+      where: { id: order.id },
       data: { status: 'CONFIRMED' },
     });
     if (order.promoCodeId && !wasAlreadyPaid) {
@@ -90,7 +81,7 @@ router.post('/callback', asyncHandler(async (req, res) => {
         data: { usedCount: { increment: 1 } },
       });
     }
-    emitOrderStatus(orderId, 'CONFIRMED');
+    emitOrderStatus(order.id, 'CONFIRMED');
   }
 
   res.json({ status: 'ok' });
