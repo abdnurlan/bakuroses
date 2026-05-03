@@ -6,6 +6,9 @@ interface PayriffCreateOrderOptions {
   currency: string;
   description: string;
   callbackUrl: string;
+  approveUrl: string;
+  cancelUrl: string;
+  declineUrl: string;
   language?: string;
 }
 
@@ -56,6 +59,9 @@ export async function createPayriffOrder(opts: PayriffCreateOrderOptions): Promi
       language: opts.language ?? 'AZ',
       description: opts.description,
       callbackUrl: opts.callbackUrl,
+      approveUrl: opts.approveUrl,
+      cancelUrl: opts.cancelUrl,
+      declineUrl: opts.declineUrl,
       operation: 'PURCHASE',
       metadata: {
         internalOrderId: opts.internalOrderId,
