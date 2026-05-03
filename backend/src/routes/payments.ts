@@ -10,7 +10,9 @@ const router = Router();
 // Payriff POSTs here when payment status changes.
 // Payriff does not sign callbacks, so we cross-verify by calling their API directly.
 router.post('/callback', asyncHandler(async (req, res) => {
-  const body = req.body as { code?: string; payload?: PayriffCallbackPayload };
+  console.log('Payriff callback body:', JSON.stringify(req.body, null, 2));
+
+  const body = req.body as { code?: string; payload?: PayriffCallbackPayload & { metadata?: Record<string, string> } };
 
   const payriffOrderId = body?.payload?.orderId;
   if (!payriffOrderId) {
@@ -28,16 +30,14 @@ router.post('/callback', asyncHandler(async (req, res) => {
     return;
   }
 
-  const internalOrderId = verified.transactions?.[0]
-    ? undefined
-    : undefined;
+  console.log('Payriff verified payload:', JSON.stringify(verified, null, 2));
 
-  // Payriff stores our internalOrderId in metadata — it comes back in the callback body
-  const metadata = (req.body as { payload?: { metadata?: { internalOrderId?: string } } })
-    ?.payload?.metadata;
+  // Try metadata from callback body first, then from verified payload
+  const metadata = body?.payload?.metadata ?? (verified as unknown as { metadata?: Record<string, string> })?.metadata;
   const orderId = metadata?.internalOrderId;
 
   if (!orderId) {
+    console.error('Missing internalOrderId, metadata was:', metadata);
     res.status(400).json({ error: 'Missing internalOrderId in callback metadata' });
     return;
   }
