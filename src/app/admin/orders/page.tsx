@@ -77,12 +77,7 @@ export default function AdminOrdersPage() {
     queryKey: ['admin-orders', page, filterStatus],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
-      // Never show PENDING_PAYMENT in admin
-      if (filterStatus) {
-        params.set('status', filterStatus);
-      } else {
-        params.set('excludeStatus', 'PENDING_PAYMENT');
-      }
+      if (filterStatus) params.set('status', filterStatus);
       const res = await api.get(`/api/orders?${params.toString()}`);
       return res.data;
     },

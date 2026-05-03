@@ -220,7 +220,7 @@ router.put('/:id/status', adminGuard, validate(UpdateStatusSchema), asyncHandler
 
   if (
     currentOrder.status === 'PENDING_PAYMENT' &&
-    currentOrder.paymentType === 'epoint' &&
+    currentOrder.paymentType === 'payriff' &&
     currentOrder.payment?.status !== 'PAID' &&
     status !== 'CANCELLED'
   ) {
@@ -258,11 +258,10 @@ router.get('/', adminGuard, asyncHandler(async (req, res) => {
     ? req.query.excludeStatus as typeof ORDER_STATUSES[number]
     : undefined;
 
+  // PENDING_PAYMENT orders are never shown in admin — payment not completed yet
   const where = status
-    ? { status }
-    : excludeStatus
-      ? { status: { not: excludeStatus } }
-      : {};
+    ? { AND: [{ status }, { status: { not: 'PENDING_PAYMENT' as const } }] }
+    : { status: { not: 'PENDING_PAYMENT' as const } };
 
   const [orders, total] = await Promise.all([
     prisma.order.findMany({
