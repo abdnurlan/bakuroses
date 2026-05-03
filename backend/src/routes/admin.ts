@@ -40,13 +40,14 @@ router.get('/dashboard', asyncHandler(async (_req, res) => {
     revenueResult,
     recentOrders,
   ] = await Promise.all([
-    prisma.order.count(),
+    prisma.order.count({ where: { status: { not: 'PENDING_PAYMENT' } } }),
     prisma.order.aggregate({
       _sum: { total: true },
-      where: { status: 'CONFIRMED' },
+      where: { status: { in: ['CONFIRMED', 'PREPARING', 'ON_THE_WAY', 'DELIVERED'] } },
     }),
     prisma.order.findMany({
       take: 10,
+      where: { status: { not: 'PENDING_PAYMENT' } },
       orderBy: { createdAt: 'desc' },
       include: { zone: true, items: { include: { product: true } } },
     }),
