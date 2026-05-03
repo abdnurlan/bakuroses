@@ -158,10 +158,9 @@ router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
       currency: 'AZN',
       description: `Sifariş #${order.code}`,
       callbackUrl: `${process.env.API_URL}/payments/callback`,
-      approveUrl: `${process.env.CLIENT_URL}/success?order_id=${order.id}`,
-      cancelUrl: `${process.env.CLIENT_URL}/error?order_id=${order.id}`,
-      declineUrl: `${process.env.CLIENT_URL}/error?order_id=${order.id}`,
-      // approveUrl/cancelUrl/declineUrl redirect customer directly to frontend
+      approveUrl: `${process.env.CLIENT_URL}/az/success?order_id=${order.id}`,
+      cancelUrl: `${process.env.CLIENT_URL}/az/error?order_id=${order.id}`,
+      declineUrl: `${process.env.CLIENT_URL}/az/error?order_id=${order.id}`,
       language: 'AZ',
     });
   } catch (err) {
