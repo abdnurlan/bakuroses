@@ -29,6 +29,7 @@ const CreateOrderSchema = z.object({
   paymentType: z.enum(['payriff']),
   zoneId: z.string(),
   promoCode: z.string().optional(),
+  locale: z.enum(['az', 'en', 'ru']).optional(),
 }).superRefine((data, ctx) => {
   if (data.deliveryFor !== 'gift') return;
   if (!data.recipientName?.trim()) {
@@ -66,7 +67,8 @@ async function notifyByStatus(order: { id: string; code: string; customerName: s
 }
 
 router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
-  const { name, phone, deliveryFor, recipientName, recipientPhone, address, lat, lng, note, scheduledDate, items, paymentType, zoneId, promoCode } = req.body;
+  const { name, phone, deliveryFor, recipientName, recipientPhone, address, lat, lng, note, scheduledDate, items, paymentType, zoneId, promoCode, locale } = req.body;
+  const lang: 'az' | 'en' | 'ru' = locale ?? 'az';
 
   const zone = await prisma.zone.findUnique({ where: { id: zoneId } });
   if (!zone || !zone.isActive) {
@@ -158,10 +160,10 @@ router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
       currency: 'AZN',
       description: `Sifariş #${order.code}`,
       callbackUrl: `${process.env.API_URL}/payments/callback`,
-      approveUrl: `${process.env.CLIENT_URL}/az/success?order_id=${order.id}`,
-      cancelUrl: `${process.env.CLIENT_URL}/az/error?order_id=${order.id}`,
-      declineUrl: `${process.env.CLIENT_URL}/az/error?order_id=${order.id}`,
-      language: 'AZ',
+      approveUrl: `${process.env.CLIENT_URL}/${lang}/success?order_id=${order.id}`,
+      cancelUrl: `${process.env.CLIENT_URL}/${lang}/error?order_id=${order.id}`,
+      declineUrl: `${process.env.CLIENT_URL}/${lang}/error?order_id=${order.id}`,
+      language: lang.toUpperCase(),
     });
   } catch (err) {
     console.error('Payriff create order error:', err);

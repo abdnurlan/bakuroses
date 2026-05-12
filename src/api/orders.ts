@@ -20,6 +20,7 @@ export interface CreateOrderPayload {
   paymentType: 'payriff';
   zoneId: string;
   promoCode?: string;
+  locale?: 'az' | 'en' | 'ru';
 }
 
 export interface OrderResponse {

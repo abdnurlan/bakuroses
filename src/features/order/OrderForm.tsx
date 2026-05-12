@@ -21,7 +21,7 @@ type DeliveryFor = 'self' | 'gift';
 
 export function OrderForm() {
   const router = useRouter();
-  const { t } = useLang();
+  const { t, locale } = useLang();
   const lp = useLocalePath();
   const cartItems = useAppStore((s) => s.cartItems);
   const clearCart = useAppStore((s) => s.removeFromCart);
@@ -176,6 +176,7 @@ export function OrderForm() {
       paymentType: 'payriff',
       zoneId: zone.id,
       promoCode: promoResult ? promoInput.trim() : undefined,
+      locale,
     });
   };
 

@@ -87,35 +87,52 @@ router.post('/callback', asyncHandler(async (req, res) => {
   res.json({ status: 'ok' });
 }));
 
-// Payriff redirects customer browser here after payment (GET)
+// Payriff redirects customer browser here after payment (GET).
+// approveUrl already points directly to the frontend; this is a fallback
+// in case Payriff strips our query string or hits the callbackUrl with the browser.
 router.get('/callback', asyncHandler(async (req, res) => {
   const clientUrl = process.env.CLIENT_URL ?? 'https://bakuroses.az';
-  const payriffOrderId = (req.query.orderID ?? req.query.orderId ?? req.query.order_id) as string | undefined;
+  const locales = ['az', 'en', 'ru'] as const;
+  const rawLocale = String(req.query.locale ?? '').toLowerCase();
+  const lang = (locales as readonly string[]).includes(rawLocale) ? rawLocale : 'az';
 
+  // Internal order id (set by us in approveUrl as ?order_id=...)
+  const internalOrderId = (req.query.order_id ?? req.query.orderId) as string | undefined;
+  if (internalOrderId) {
+    const order = await prisma.order.findUnique({
+      where: { id: internalOrderId },
+      select: { id: true },
+    });
+    if (order) {
+      res.redirect(`${clientUrl}/${lang}/success?order_id=${order.id}`);
+      return;
+    }
+  }
+
+  // Payriff order id (when Payriff supplies their own orderID in the redirect)
+  const payriffOrderId = (req.query.orderID ?? req.query.order_id) as string | undefined;
   if (payriffOrderId) {
-    // Try payment record first (POST callback may have already arrived)
     const payment = await prisma.payment.findFirst({
       where: { transactionId: payriffOrderId },
       select: { orderId: true },
     });
     if (payment) {
-      res.redirect(`${clientUrl}/az/success?order_id=${payment.orderId}`);
+      res.redirect(`${clientUrl}/${lang}/success?order_id=${payment.orderId}`);
       return;
     }
 
-    // POST callback hasn't arrived yet — wait briefly and try again
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1500));
     const payment2 = await prisma.payment.findFirst({
       where: { transactionId: payriffOrderId },
       select: { orderId: true },
     });
     if (payment2) {
-      res.redirect(`${clientUrl}/az/success?order_id=${payment2.orderId}`);
+      res.redirect(`${clientUrl}/${lang}/success?order_id=${payment2.orderId}`);
       return;
     }
   }
 
-  res.redirect(`${clientUrl}/az/`);
+  res.redirect(`${clientUrl}/${lang}/`);
 }));
 
 router.get('/:orderId', adminGuard, asyncHandler(async (req, res) => {
