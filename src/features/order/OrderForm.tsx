@@ -13,7 +13,6 @@ import { createOrder, type OrderItem } from '@/api/orders';
 import { validatePromoCode, type PromoValidateResult } from '@/api/promoCodes';
 import { useAppStore } from '@/shared/store';
 import { useLang } from '@/providers/LanguageProvider';
-import { useLocalePath } from '@/hooks/useLocalePath';
 import type { TranslationKey } from '@/lib/i18n';
 
 type FormField = 'name' | 'phone' | 'recipientName' | 'recipientPhone' | 'address' | 'map' | 'cart' | 'scheduledDate';
@@ -22,9 +21,7 @@ type DeliveryFor = 'self' | 'gift';
 export function OrderForm() {
   const router = useRouter();
   const { t, locale } = useLang();
-  const lp = useLocalePath();
   const cartItems = useAppStore((s) => s.cartItems);
-  const clearCart = useAppStore((s) => s.removeFromCart);
 
   const [form, setForm] = useState({
     name: '',
@@ -77,8 +74,7 @@ export function OrderForm() {
       if (data.paymentUrl) {
         window.location.href = data.paymentUrl;
       } else {
-        cartItems.forEach((item) => clearCart(item.product.id));
-        router.push(`${lp('/success')}?order_id=${data.orderId}`);
+        toast.error(t('order_err_general'));
       }
     },
     onError: () => {

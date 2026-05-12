@@ -43,6 +43,26 @@ export function middleware(request: NextRequest) {
   const maybeLocale = segments[1];
 
   if (isLocale(maybeLocale)) {
+    // Guard /{locale}/success — only reachable right after a payment redirect.
+    // The backend GET /payments/callback sets br_paid; we consume it here.
+    if (segments[2] === 'success') {
+      const paid = request.cookies.get('br_paid')?.value;
+      if (paid !== '1') {
+        const url = request.nextUrl.clone();
+        url.pathname = `/${maybeLocale}`;
+        return NextResponse.redirect(url, 307);
+      }
+      const response = NextResponse.next();
+      response.cookies.set(LANGUAGE_COOKIE, maybeLocale, {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 365,
+        sameSite: 'lax',
+        httpOnly: false,
+      });
+      response.cookies.set('br_paid', '', { path: '/', maxAge: 0 });
+      return response;
+    }
+
     const response = NextResponse.next();
     response.cookies.set(LANGUAGE_COOKIE, maybeLocale, {
       path: '/',
