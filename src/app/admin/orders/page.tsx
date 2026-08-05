@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -28,6 +28,9 @@ interface Order {
   id: string; code: string; customerName: string; customerPhone: string;
   address: string; total: number; discountAmount: number; status: string; paymentType: string;
   createdAt: string; note?: string; scheduledDate?: string | null;
+  deliveryFor?: string;
+  recipientName?: string | null;
+  recipientPhone?: string | null;
   zone: { name: string };
   promoCode?: { code: string } | null;
   items: { quantity: number; price: number; product: { name: string; imageUrl: string } }[];
@@ -41,6 +44,24 @@ interface OrdersResponse {
 }
 
 const PAGE_SIZE = 20;
+
+// Node's az-AZ ICU data renders months as "M08", so format them by hand
+const AZ_MONTHS = [
+  'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
+  'iyul', 'avqust', 'sentyabr', 'oktyabr', 'noyabr', 'dekabr',
+];
+
+function azDate(value: string | Date) {
+  const d = new Date(value);
+  return `${d.getDate()} ${AZ_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function azDateTime(value: string | Date) {
+  const d = new Date(value);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${d.getDate()} ${AZ_MONTHS[d.getMonth()]}, ${hh}:${mm}`;
+}
 
 function IconCheck() {
   return (
@@ -67,11 +88,84 @@ function IconBox() {
   );
 }
 
+function IconPhone() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+      <path d="M12.5 9.9v1.9a1.3 1.3 0 0 1-1.4 1.3 12.8 12.8 0 0 1-5.6-2 12.6 12.6 0 0 1-3.9-3.9 12.8 12.8 0 0 1-2-5.6A1.3 1.3 0 0 1 .9 0h1.9a1.3 1.3 0 0 1 1.3 1.1c.1.7.2 1.3.5 1.9a1.3 1.3 0 0 1-.3 1.4l-.8.8a10.4 10.4 0 0 0 3.9 3.9l.8-.8a1.3 1.3 0 0 1 1.4-.3c.6.2 1.2.4 1.9.5a1.3 1.3 0 0 1 1.1 1.4Z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function IconGift() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+      <path d="M11.7 7v5.8H2.3V7M13 4.1H1v2.9h12V4.1ZM7 12.8V4.1M7 4.1H4.4a1.5 1.5 0 1 1 0-2.9C6.4 1.2 7 4.1 7 4.1ZM7 4.1h2.6a1.5 1.5 0 1 0 0-2.9C7.6 1.2 7 4.1 7 4.1Z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function IconZoom() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.6"/>
+      <path d="M10.5 10.5 14 14M7 5.2v3.6M5.2 7h3.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+/** Name + tappable phone. `tone` switches between the buyer and recipient cards. */
+function PersonCard({ role, name, phone, tone }: {
+  role: string; name: string; phone?: string | null; tone: 'buyer' | 'recipient';
+}) {
+  const accent = tone === 'recipient' ? '#7c3aed' : 'var(--color-text)';
+  return (
+    <div style={{
+      background: tone === 'recipient' ? '#faf7ff' : '#fafafa',
+      border: `1px solid ${tone === 'recipient' ? '#e9deff' : 'var(--color-border)'}`,
+      borderRadius: 12, padding: '0.8rem 0.9rem',
+    }}>
+      <p style={{ ...infoLabel, color: accent, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        {tone === 'recipient' && <IconGift />}
+        {role}
+      </p>
+      <p style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: phone ? '0.4rem' : 0 }}>
+        {name || '—'}
+      </p>
+      {phone && (
+        <a
+          href={`tel:${phone.replace(/[^\d+]/g, '')}`}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+            fontSize: '0.85rem', fontWeight: 600, color: accent,
+            textDecoration: 'none', direction: 'ltr',
+          }}
+        >
+          <IconPhone />
+          {phone}
+        </a>
+      )}
+    </div>
+  );
+}
+
 export default function AdminOrdersPage() {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Order | null>(null);
+  const [zoomed, setZoomed] = useState<{ src: string; alt: string } | null>(null);
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
+
+  // Esc closes the zoom first, then the detail modal
+  useEffect(() => {
+    if (!selected && !zoomed) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (zoomed) setZoomed(null);
+      else setSelected(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selected, zoomed]);
 
   const { data, isLoading } = useQuery<OrdersResponse>({
     queryKey: ['admin-orders', page, filterStatus],
@@ -85,6 +179,10 @@ export default function AdminOrdersPage() {
   });
   const orders = data?.orders ?? [];
   const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE));
+
+  // Older orders predate the deliveryFor column, so fall back to the recipient fields
+  const isGift = selected?.deliveryFor === 'gift'
+    || Boolean(selected?.recipientName || selected?.recipientPhone);
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
@@ -127,10 +225,16 @@ export default function AdminOrdersPage() {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
               <div>
-                <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
-                  Sifariş #{selected.code}
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.25rem' }}>#{selected.code}</h2>
+                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                  {azDateTime(selected.createdAt)}
+                  {isGift && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#7c3aed', fontWeight: 700 }}>
+                      <IconGift />
+                      Hədiyyə
+                    </span>
+                  )}
                 </p>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>{selected.customerName}</h2>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 {STATUS_COLORS[selected.status] && (
@@ -151,32 +255,48 @@ export default function AdminOrdersPage() {
               </div>
             </div>
 
-            {/* Info */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1.25rem' }}>
-              <div style={infoCard}>
-                <p style={infoLabel}>Telefon</p>
-                <p style={infoValue}>{selected.customerPhone}</p>
-              </div>
+            {/* Who ordered / who receives */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isGift ? '1fr 1fr' : '1fr',
+              gap: '0.6rem', marginBottom: '0.6rem',
+            }}>
+              <PersonCard
+                role={isGift ? 'Sifarişçi' : 'Müştəri'}
+                name={selected.customerName}
+                phone={selected.customerPhone}
+                tone="buyer"
+              />
+              {isGift && (
+                <PersonCard
+                  role="Alıcı"
+                  name={selected.recipientName ?? ''}
+                  phone={selected.recipientPhone}
+                  tone="recipient"
+                />
+              )}
+            </div>
+
+            {/* Delivery details */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '1.25rem' }}>
               <div style={infoCard}>
                 <p style={infoLabel}>Zona</p>
                 <p style={infoValue}>{selected.zone?.name ?? '—'}</p>
+              </div>
+              <div style={infoCard}>
+                <p style={infoLabel}>Çatdırılma tarixi</p>
+                <p style={{ ...infoValue, color: selected.scheduledDate ? '#7c3aed' : undefined, fontWeight: selected.scheduledDate ? 600 : 500 }}>
+                  {selected.scheduledDate ? azDate(selected.scheduledDate) : '—'}
+                </p>
               </div>
               <div style={{ ...infoCard, gridColumn: '1 / -1' }}>
                 <p style={infoLabel}>Ünvan</p>
                 <p style={infoValue}>{selected.address}</p>
               </div>
-              {selected.scheduledDate && (
-                <div style={{ ...infoCard, gridColumn: '1 / -1' }}>
-                  <p style={infoLabel}>Çatdırılma tarixi</p>
-                  <p style={{ ...infoValue, color: '#7c3aed', fontWeight: 600 }}>
-                    {new Date(selected.scheduledDate).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                  </p>
-                </div>
-              )}
               {selected.note && (
-                <div style={{ ...infoCard, gridColumn: '1 / -1' }}>
+                <div style={{ ...infoCard, gridColumn: '1 / -1', background: '#fffdf5', borderColor: '#f3e6c0' }}>
                   <p style={infoLabel}>Qeyd</p>
-                  <p style={infoValue}>{selected.note}</p>
+                  <p style={{ ...infoValue, fontStyle: 'italic' }}>{selected.note}</p>
                 </div>
               )}
             </div>
@@ -184,19 +304,29 @@ export default function AdminOrdersPage() {
             {/* Items */}
             <div style={{ borderRadius: 12, border: '1px solid var(--color-border)', overflow: 'hidden', marginBottom: '1.25rem' }}>
               {selected.items.map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.85rem', padding: '0.75rem 1rem', borderBottom: i < selected.items.length - 1 ? '1px solid var(--color-border)' : 'none', background: '#fff' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
-                    <img
-                      src={item.product.imageUrl}
-                      alt={item.product.name}
-                      style={{ width: 52, height: 52, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--color-border)', flexShrink: 0 }}
-                    />
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.85rem', padding: '0.85rem 1rem', borderBottom: i < selected.items.length - 1 ? '1px solid var(--color-border)' : 'none', background: '#fff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem', minWidth: 0 }}>
+                    <button
+                      type="button"
+                      onClick={() => setZoomed({ src: item.product.imageUrl, alt: item.product.name })}
+                      title="Böyütmək üçün klikləyin"
+                      style={thumbButton}
+                    >
+                      <img
+                        src={item.product.imageUrl}
+                        alt={item.product.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      />
+                      <span style={thumbZoomBadge}><IconZoom /></span>
+                    </button>
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.1rem' }}>{item.product.name}</p>
-                      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>× {item.quantity}</p>
+                      <p style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.15rem' }}>{item.product.name}</p>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                        {item.quantity} × {item.price.toFixed(0)} ₼
+                      </p>
                     </div>
                   </div>
-                  <p style={{ fontSize: '0.875rem', fontWeight: 700, flexShrink: 0 }}>{(item.price * item.quantity).toFixed(0)} ₼</p>
+                  <p style={{ fontSize: '0.9rem', fontWeight: 700, flexShrink: 0 }}>{(item.price * item.quantity).toFixed(0)} ₼</p>
                 </div>
               ))}
               <div style={{ padding: '0.75rem 1rem', background: '#fafafa', borderTop: '1px solid var(--color-border)' }}>
@@ -241,6 +371,28 @@ export default function AdminOrdersPage() {
               <p style={{ fontSize: '0.82rem', color: '#dc2626', fontWeight: 600 }}>Sifariş ləğv edilib.</p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Full-size image */}
+      {zoomed && (
+        <div style={zoomOverlay} onClick={() => setZoomed(null)}>
+          <button onClick={() => setZoomed(null)} style={zoomCloseBtn} aria-label="Bağla">
+            <IconX />
+          </button>
+          <img
+            src={zoomed.src}
+            alt={zoomed.alt}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 'min(92vw, 900px)', maxHeight: '82vh',
+              objectFit: 'contain', borderRadius: 12,
+              boxShadow: '0 30px 80px rgba(0,0,0,0.5)',
+            }}
+          />
+          <p style={{ marginTop: '1rem', color: '#fff', fontSize: '0.9rem', fontWeight: 600, textAlign: 'center', maxWidth: '90vw' }}>
+            {zoomed.alt}
+          </p>
         </div>
       )}
 
@@ -364,5 +516,29 @@ const modalOverlay: React.CSSProperties = {
 };
 const modalBox: React.CSSProperties = {
   background: '#fff', borderRadius: 20, padding: '1.75rem', width: '100%',
-  maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+  maxWidth: 640, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+};
+const thumbButton: React.CSSProperties = {
+  position: 'relative', width: 132, height: 132, flexShrink: 0,
+  borderRadius: 14, overflow: 'hidden', padding: 0,
+  border: '1px solid var(--color-border)', background: '#fff',
+  cursor: 'zoom-in', display: 'block',
+};
+const thumbZoomBadge: React.CSSProperties = {
+  position: 'absolute', right: 6, bottom: 6,
+  width: 28, height: 28, borderRadius: 8,
+  background: 'rgba(0,0,0,0.55)', color: '#fff',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+const zoomOverlay: React.CSSProperties = {
+  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+  zIndex: 300, cursor: 'zoom-out', padding: '2rem',
+};
+const zoomCloseBtn: React.CSSProperties = {
+  position: 'absolute', top: 20, right: 20,
+  width: 40, height: 40, borderRadius: '50%',
+  border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.1)',
+  color: '#fff', cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
 };

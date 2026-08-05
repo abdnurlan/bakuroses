@@ -1,0 +1,25 @@
+# deps & build output
+node_modules
+.next
+out
+build
+backend
+
+# vcs / editor
+.git
+.github
+.vscode
+.idea
+
+# local
+.env
+.env.*
+*.log
+test-results
+coverage
+.DS_Store
+
+# docker
+Dockerfile
+.dockerignore
+docker-compose.yml

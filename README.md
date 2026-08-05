@@ -16,6 +16,44 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Docker
+
+The whole stack (Next.js frontend, Express backend, Postgres, Redis) runs with Compose:
+
+```bash
+cp env.docker.example .env   # adjust ports/secrets if needed
+docker compose up -d --build
+```
+
+- Frontend → http://localhost:3000
+- Backend → http://localhost:3002 (`/health`)
+- Postgres → `localhost:5432` (change `POSTGRES_PORT` in `.env` if a local Postgres already owns it)
+- Redis → `localhost:6379`
+
+The backend entrypoint runs `prisma migrate deploy` on every start. Seeding is manual because
+the seed **deletes all products and order items** before recreating them:
+
+```bash
+docker compose exec backend npx ts-node src/prisma/seed.ts
+```
+
+Uploads are bind-mounted from `backend/uploads`, so media added through the admin panel lands in
+the repo directory. Database and Redis data live in the `pgdata` / `redisdata` named volumes.
+
+Notes:
+
+- `NEXT_PUBLIC_*` and `BACKEND_URL` are baked into the frontend image at build time — change them
+  in `.env` and re-run `docker compose up -d --build`.
+- `nginx.conf` is for host-level TLS termination on the server and is not part of the Compose stack.
+
+Common commands:
+
+```bash
+docker compose logs -f backend
+docker compose down          # stop, keep data
+docker compose down -v       # stop and DELETE the database
+```
+
 ## Backend
 
 Admin pages and checkout APIs use the separate Express backend on `http://localhost:3002`. If that server is down, frontend rewrites like `/api/zones/all` return `500`.

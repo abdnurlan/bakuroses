@@ -3,6 +3,10 @@ import type { NextConfig } from 'next';
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:3002';
 
 const nextConfig: NextConfig = {
+  // Docker builds emit .next/standalone so the runtime image needs no node_modules.
+  // Left off elsewhere: the server runs `next start`, which Next refuses to pair
+  // with standalone output.
+  output: process.env.NEXT_OUTPUT_STANDALONE === '1' ? 'standalone' : undefined,
   reactCompiler: true,
   images: {
     remotePatterns: [
