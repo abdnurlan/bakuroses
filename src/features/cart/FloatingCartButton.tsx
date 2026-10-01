@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { ShoppingBagOpen } from '@phosphor-icons/react';
 import { useAppStore } from '@/shared/store';
+import { useLang } from '@/providers/LanguageProvider';
 
 export function FloatingCartButton() {
+  const { t } = useLang();
   const [visible, setVisible] = useState(false);
   const cartItems = useAppStore((s) => s.cartItems);
   const ui = useAppStore((s) => s.ui);
@@ -30,7 +32,7 @@ export function FloatingCartButton() {
   return (
     <button
       type="button"
-      aria-label={count > 0 ? `Səbət, ${count} məhsul` : 'Səbəti aç'}
+      aria-label={count > 0 ? t('cart_open_count').replace('{n}', String(count)) : t('cart_open')}
       className={`floating-cart-trigger${visible && !ui.isCartOpen ? ' is-visible' : ''}`}
       onClick={() => setUI({ isCartOpen: true })}
     >

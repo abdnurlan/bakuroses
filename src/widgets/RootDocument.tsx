@@ -1,8 +1,7 @@
-import type { Metadata } from 'next';
 import { Inter, Playfair_Display, Plus_Jakarta_Sans } from 'next/font/google';
 import { MotionConfig } from 'framer-motion';
 import Script from 'next/script';
-import './globals.css';
+import '@/app/globals.css';
 import { LenisProvider } from '@/widgets/LenisProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { ToastProvider } from '@/providers/ToastProvider';
@@ -23,14 +22,11 @@ const priceFont = Plus_Jakarta_Sans({
   variable: '--font-price',
 });
 
-export const metadata: Metadata = {
-  title: 'Baku Roses | Premium Gül Evi',
-  description: 'Bakıda seçilmiş buketlər, premium gül kompozisiyaları və zövqlə hazırlanmış çatdırılma təcrübəsi.',
-};
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// Shared <html> shell for both root layouts ([locale] and admin), so each can
+// set its own `lang` attribute.
+export function RootDocument({ lang, children }: { lang: string; children: React.ReactNode }) {
   return (
-    <html className={`${displayFont.variable} ${bodyFont.variable} ${priceFont.variable}`}>
+    <html lang={lang} className={`${displayFont.variable} ${bodyFont.variable} ${priceFont.variable}`}>
       <body className="app-shell antialiased">
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-F9EY1KF98E"

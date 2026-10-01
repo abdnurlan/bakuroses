@@ -257,6 +257,16 @@ export const translations = {
     shop_clear_filters: 'Filterləri sıfırla',
     shop_no_results: 'Nəticə tapılmadı',
     shop_no_results_sub: 'Fərqli açar söz və ya kateqoriya ilə cəhd edin.',
+    shop_back_short: 'Geri',
+    shop_back_home: 'Ana səhifəyə qayıt',
+    shop_go_to_cart: 'Səbətə keç',
+    cart_open: 'Səbəti aç',
+    cart_open_count: 'Səbət, {n} məhsul',
+
+    // Metadata
+    meta_title: 'Baku Roses | Premium Gül Evi',
+    meta_description: 'Bakıda seçilmiş buketlər, premium gül kompozisiyaları və zövqlə hazırlanmış çatdırılma təcrübəsi.',
+    meta_shop_title: 'Bütün Kolleksiya | Baku Roses',
   },
 
   en: {
@@ -497,6 +507,16 @@ export const translations = {
     shop_clear_filters: 'Clear filters',
     shop_no_results: 'No results found',
     shop_no_results_sub: 'Try a different keyword or category.',
+    shop_back_short: 'Back',
+    shop_back_home: 'Back to home page',
+    shop_go_to_cart: 'Go to cart',
+    cart_open: 'Open cart',
+    cart_open_count: 'Cart, {n} items',
+
+    // Metadata
+    meta_title: 'Baku Roses | Premium Flower Boutique',
+    meta_description: 'Curated bouquets, premium rose arrangements and thoughtful flower delivery across Baku.',
+    meta_shop_title: 'Full Collection | Baku Roses',
   },
 
   ru: {
@@ -737,6 +757,16 @@ export const translations = {
     shop_clear_filters: 'Сбросить фильтры',
     shop_no_results: 'Ничего не найдено',
     shop_no_results_sub: 'Попробуйте другое слово или категорию.',
+    shop_back_short: 'Назад',
+    shop_back_home: 'Вернуться на главную',
+    shop_go_to_cart: 'Перейти в корзину',
+    cart_open: 'Открыть корзину',
+    cart_open_count: 'Корзина, товаров: {n}',
+
+    // Metadata
+    meta_title: 'Baku Roses | Премиальный цветочный бутик',
+    meta_description: 'Авторские букеты, премиальные композиции из роз и бережная доставка цветов по Баку.',
+    meta_shop_title: 'Вся Коллекция | Baku Roses',
   },
 } as const;
 

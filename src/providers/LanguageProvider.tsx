@@ -1,12 +1,10 @@
 'use client';
 
-import { createContext, useContext, useEffect, useSyncExternalStore } from 'react';
-import { LANGUAGE_COOKIE, isLocale, type Locale, type TranslationKey, translations } from '@/lib/i18n';
+import { createContext, useContext, useEffect } from 'react';
+import { LANGUAGE_COOKIE, type Locale, type TranslationKey, translations } from '@/lib/i18n';
 
 const STORAGE_KEY = LANGUAGE_COOKIE;
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-const listeners = new Set<() => void>();
-let currentLocale: Locale = 'az';
 
 interface LanguageContextValue {
   locale: Locale;
@@ -15,15 +13,6 @@ interface LanguageContextValue {
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
-
-function readStoredLocale(fallback: Locale) {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return isLocale(stored) ? stored : fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 function persistLocale(l: Locale) {
   try {
@@ -34,28 +23,6 @@ function persistLocale(l: Locale) {
   }
 }
 
-function notifyLocaleChange(l: Locale) {
-  currentLocale = l;
-  listeners.forEach((listener) => listener());
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-
-  const handleStorage = (event: StorageEvent) => {
-    if (event.key !== STORAGE_KEY) return;
-
-    notifyLocaleChange(readStoredLocale(currentLocale));
-  };
-
-  window.addEventListener('storage', handleStorage);
-
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener('storage', handleStorage);
-  };
-}
-
 export function LanguageProvider({
   children,
   initialLocale = 'az',
@@ -63,28 +30,19 @@ export function LanguageProvider({
   children: React.ReactNode;
   initialLocale?: Locale;
 }) {
-  const locale = useSyncExternalStore(
-    subscribe,
-    () => {
-      currentLocale = readStoredLocale(initialLocale);
-      return currentLocale;
-    },
-    () => initialLocale,
-  );
+  // The URL's locale segment is the source of truth (/en/shop is always English).
+  // Storage/cookie only remember the choice for locale-less URLs (middleware redirect);
+  // callers of setLocale navigate to the new locale path themselves.
+  const locale = initialLocale;
 
   useEffect(() => {
     persistLocale(locale);
   }, [locale]);
 
-  const setLocale = (l: Locale) => {
-    persistLocale(l);
-    notifyLocaleChange(l);
-  };
-
   const t = (key: TranslationKey): string => translations[locale][key] as string;
 
   return (
-    <LanguageContext.Provider value={{ locale, setLocale, t }}>
+    <LanguageContext.Provider value={{ locale, setLocale: persistLocale, t }}>
       {children}
     </LanguageContext.Provider>
   );

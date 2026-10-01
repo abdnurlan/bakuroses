@@ -281,9 +281,9 @@ function ShopInner() {
           {/* Header */}
           <div className="shop-main-head">
             <div className="shop-head-copy">
-              <Link href={lp('/')} className="shop-home-link" aria-label="Ana səhifəyə qayıt">
+              <Link href={lp('/')} className="shop-home-link" aria-label={t('shop_back_home')}>
                 <CaretLeft size={15} weight="bold" />
-                <span>Geri</span>
+                <span>{t('shop_back_short')}</span>
               </Link>
               <div>
                 <p className="section-kicker" style={{ marginBottom: '0.35rem' }}>{t('collection_kicker')}</p>
@@ -311,7 +311,7 @@ function ShopInner() {
                   <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
                   <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                 </svg>
-                Səbətə keç
+                {t('shop_go_to_cart')}
                 {cartCount > 0 && <span className="shop-cart-btn-badge">{cartCount}</span>}
               </button>
             </div>
@@ -411,7 +411,10 @@ function ShopInner() {
   );
 }
 
+// Server-rendered fallback (useSearchParams bails ShopInner out to the client),
+// so it carries the localized heading — crawlers see the page language.
 function ShopSkeleton() {
+  const { t } = useLang();
   return (
     <main className="shop-page">
       <div className="shop-layout">
@@ -420,7 +423,10 @@ function ShopSkeleton() {
         </div>
         <div className="shop-main-col">
           <div className="shop-main-head">
-            <div style={{ height: 48, width: 240, borderRadius: 8, background: 'rgba(186,123,145,0.1)' }} />
+            <div>
+              <p className="section-kicker" style={{ marginBottom: '0.35rem' }}>{t('collection_kicker')}</p>
+              <h1 className="shop-title">{t('shop_title')}</h1>
+            </div>
           </div>
           <div className="shop-grid shop-grid--loading">
             {Array.from({ length: 6 }).map((_, i) => (
