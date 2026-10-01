@@ -169,7 +169,6 @@ export function OrderForm() {
       note: form.note || undefined,
       scheduledDate: form.scheduledDate ? new Date(form.scheduledDate).toISOString() : undefined,
       items,
-      paymentType: 'payriff',
       zoneId: zone.id,
       promoCode: promoResult ? promoInput.trim() : undefined,
       locale,

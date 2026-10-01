@@ -1,8 +1,12 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../lib/asyncHandler';
-import { emitOrderStatus } from '../services/socket';
 import { adminGuard } from '../middleware/adminGuard';
+import {
+  settleOrderPayment,
+  reconcileChewickPayment,
+  findOrderByChewickIds,
+} from '../services/paymentReconcile';
 
 const router = Router();
 
@@ -28,70 +32,96 @@ router.post('/callback', asyncHandler(async (req, res) => {
     res.status(400).json({ error: 'Cannot extract order code' });
     return;
   }
-  const orderCode = codeMatch[0];
-
-  const isPaid = payload.orderStatus === 'APPROVED';
-  const paidAmount = payload.purchaseAmountScr ?? 0;
 
   const order = await prisma.order.findUnique({
-    where: { code: orderCode },
-    select: { id: true, total: true, promoCodeId: true },
+    where: { code: codeMatch[0] },
+    select: { id: true },
   });
 
   if (!order) {
-    console.error('Order not found for code:', orderCode);
+    console.error('Order not found for code:', codeMatch[0]);
     res.status(404).json({ error: 'Order not found' });
     return;
   }
 
-  if (isPaid && Math.abs(order.total - paidAmount) > 0.01) {
-    console.error('Amount mismatch: expected', order.total, 'got', paidAmount);
-    res.status(400).json({ error: 'Payment amount mismatch' });
+  const result = await settleOrderPayment({
+    orderId: order.id,
+    outcome: payload.orderStatus === 'APPROVED' ? 'paid' : 'failed',
+    amount: payload.purchaseAmountScr ?? 0,
+    transactionId: payload.orderID,
+  });
+
+  if (!result.ok) {
+    console.error('Payriff callback rejected:', result.reason);
+    res.status(400).json({ error: result.reason });
     return;
-  }
-
-  const existingPayment = await prisma.payment.findUnique({
-    where: { orderId: order.id },
-    select: { status: true },
-  });
-  const wasAlreadyPaid = existingPayment?.status === 'PAID';
-
-  await prisma.payment.upsert({
-    where: { orderId: order.id },
-    update: {
-      status: isPaid ? 'PAID' : 'FAILED',
-      transactionId: payload.orderID,
-    },
-    create: {
-      orderId: order.id,
-      amount: paidAmount,
-      status: isPaid ? 'PAID' : 'FAILED',
-      transactionId: payload.orderID,
-    },
-  });
-
-  if (isPaid) {
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { status: 'CONFIRMED' },
-    });
-    if (order.promoCodeId && !wasAlreadyPaid) {
-      await prisma.promoCode.update({
-        where: { id: order.promoCodeId },
-        data: { usedCount: { increment: 1 } },
-      });
-    }
-    emitOrderStatus(order.id, 'CONFIRMED');
   }
 
   res.json({ status: 'ok' });
 }));
 
-// Payriff redirects customer browser here after payment (GET).
-// Payment status is already updated by the POST callback. We set a short-lived
-// one-time cookie so the success page can verify the visit came from a real
-// payment redirect (not someone typing /success in the address bar).
-router.get('/callback', (req, res) => {
+// Chewick POSTs here when a transaction changes state. Callbacks are enabled by
+// asking Chewick to register this URL — there is no per-request callbackUrl
+// field, so the URL carries no order context and the body is all we get:
+//
+//   { transactionId, linkId, amount, order, terminal, currency,
+//     approvalId, rrn, datetime, status, statusDescription }
+//
+// The payload is unsigned, so it is never treated as proof of payment — it
+// tells us *which* order to re-check and supplies the transaction id that the
+// status endpoint needs. The verdict always comes from
+// GET /v1/payment/transactions/{id}/status, which also means a forged callback
+// is harmless and a missing one is covered by the poller.
+router.post('/chewick/callback', asyncHandler(async (req, res) => {
+  const ids = extractChewickIds(req.body);
+
+  if (!ids.linkId && !ids.transactionId) {
+    console.warn('Chewick callback without linkId/transactionId:', JSON.stringify(req.body)?.slice(0, 500));
+    res.status(400).json({ error: 'Cannot determine transaction' });
+    return;
+  }
+
+  const orderId = await findOrderByChewickIds(ids);
+  if (!orderId) {
+    console.warn('Chewick callback for unknown transaction:', JSON.stringify(ids));
+    res.status(404).json({ error: 'Unknown transaction' });
+    return;
+  }
+
+  try {
+    const result = await reconcileChewickPayment(orderId, ids.transactionId);
+    res.json({ status: 'ok', paymentStatus: result.status });
+  } catch (err) {
+    // Acknowledge anyway: the poller will retry, and a 5xx may make Chewick
+    // replay the callback indefinitely.
+    console.error('Chewick reconcile failed on callback:', (err as Error).message);
+    res.json({ status: 'ok', paymentStatus: 'deferred' });
+  }
+}));
+
+/**
+ * Pulls the two ids we can match on out of a callback body or redirect query.
+ * `order` is Chewick's own reference, not ours, so it is deliberately ignored.
+ */
+function extractChewickIds(body: unknown): { linkId?: string; transactionId?: string } {
+  if (!body || typeof body !== 'object') return {};
+  const root = body as Record<string, unknown>;
+  // Tolerate a { data: {...} } wrapper in case the shape ever changes.
+  const src = (root.data && typeof root.data === 'object' ? root.data : root) as Record<string, unknown>;
+
+  const str = (key: string): string | undefined => {
+    const value = src[key] ?? root[key];
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  };
+
+  return { linkId: str('linkId'), transactionId: str('transactionId') };
+}
+
+// Gateways redirect the customer's browser here after payment (GET).
+// The status itself is settled by the POST callback / poller; this only sets a
+// short-lived one-time cookie so the success page can verify the visit came
+// from a real payment redirect (not someone typing /success in the address bar).
+function paymentRedirect(req: Request, res: Response): void {
   const clientUrl = process.env.CLIENT_URL ?? 'https://bakuroses.az';
   const locales = ['az', 'en', 'ru'] as const;
   const rawLocale = String(req.query.locale ?? '').toLowerCase();
@@ -106,6 +136,21 @@ router.get('/callback', (req, res) => {
   });
 
   res.redirect(`${clientUrl}/${lang}/success`);
+}
+
+router.get('/callback', paymentRedirect);
+
+router.get('/chewick/callback', (req, res) => {
+  // Returning from the Chewick app — nudge the status check so the success page
+  // reflects reality without waiting for the next poll tick.
+  const ids = extractChewickIds(req.query);
+  if (ids.linkId || ids.transactionId) {
+    void findOrderByChewickIds(ids)
+      .then((orderId) => (orderId ? reconcileChewickPayment(orderId, ids.transactionId) : null))
+      .catch((err) => console.error('Chewick redirect reconcile failed:', (err as Error).message));
+  }
+
+  paymentRedirect(req, res);
 });
 
 router.get('/:orderId', adminGuard, asyncHandler(async (req, res) => {

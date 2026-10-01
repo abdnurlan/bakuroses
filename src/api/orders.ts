@@ -17,7 +17,6 @@ export interface CreateOrderPayload {
   note?: string;
   scheduledDate?: string;
   items: OrderItem[];
-  paymentType: 'payriff';
   zoneId: string;
   promoCode?: string;
   locale?: 'az' | 'en' | 'ru';

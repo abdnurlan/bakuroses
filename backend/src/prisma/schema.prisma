@@ -96,9 +96,16 @@ model Payment {
   amount        Float
   currency      String        @default("AZN")
   status        PaymentStatus @default(PENDING)
+  // Chewick hands us a link id at checkout, but its status endpoint wants a
+  // transaction id — and that only arrives in the callback. Keep both so an
+  // order can be found by whichever id the gateway quotes back at us.
+  linkId        String?
   transactionId String?
   createdAt     DateTime      @default(now())
   order         Order         @relation(fields: [orderId], references: [id])
+
+  @@index([linkId])
+  @@index([transactionId])
 }
 
 model Delivery {

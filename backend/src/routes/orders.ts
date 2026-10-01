@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../lib/asyncHandler';
 import { generateOrderCode } from '../services/orderCode';
-import { createPayriffOrder } from '../services/payriff';
+import { createCheckout, currentProvider } from '../services/paymentProvider';
+import { ONLINE_PROVIDERS } from '../config/payment';
 import { queueEmail } from '../services/email';
 import { emitOrderStatus } from '../services/socket';
 import { haversineDistance } from '../services/maps';
@@ -26,7 +27,9 @@ const CreateOrderSchema = z.object({
   items: z
     .array(z.object({ productId: z.string(), quantity: z.number().int().positive() }))
     .min(1),
-  paymentType: z.enum(['payriff']),
+  // Accepted for backwards compatibility but ignored: the active gateway is a
+  // server-side decision (PAYMENT_PROVIDER), not something the client picks.
+  paymentType: z.enum(['payriff', 'chewick']).optional(),
   zoneId: z.string(),
   promoCode: z.string().optional(),
   locale: z.enum(['az', 'en', 'ru']).optional(),
@@ -67,8 +70,9 @@ async function notifyByStatus(order: { id: string; code: string; customerName: s
 }
 
 router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
-  const { name, phone, deliveryFor, recipientName, recipientPhone, address, lat, lng, note, scheduledDate, items, paymentType, zoneId, promoCode, locale } = req.body;
+  const { name, phone, deliveryFor, recipientName, recipientPhone, address, lat, lng, note, scheduledDate, items, zoneId, promoCode, locale } = req.body;
   const lang: 'az' | 'en' | 'ru' = locale ?? 'az';
+  const paymentType = currentProvider();
 
   const zone = await prisma.zone.findUnique({ where: { id: zoneId } });
   if (!zone || !zone.isActive) {
@@ -152,27 +156,31 @@ router.post('/', validate(CreateOrderSchema), asyncHandler(async (req, res) => {
     include: { items: { include: { product: true } } },
   });
 
-  let payriffResult: { payriffOrderId: string; paymentUrl: string };
+  let checkout: Awaited<ReturnType<typeof createCheckout>>;
   try {
-    payriffResult = await createPayriffOrder({
-      internalOrderId: order.id,
-      amount: total,
-      currency: 'AZN',
-      description: `Sifariş #${order.code}`,
-      callbackUrl: `${process.env.API_URL}/payments/callback?locale=${lang}`,
-      approveUrl: `${process.env.CLIENT_URL}/${lang}/success`,
-      cancelUrl: `${process.env.CLIENT_URL}/${lang}/error`,
-      declineUrl: `${process.env.CLIENT_URL}/${lang}/error`,
-      language: lang.toUpperCase(),
-    });
+    checkout = await createCheckout(order, lang);
   } catch (err) {
-    console.error('Payriff create order error:', err);
+    console.error(`${paymentType} create payment error:`, err);
     await prisma.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' } });
     res.status(502).json({ error: 'Payment gateway error. Please try again.' });
     return;
   }
 
-  res.json({ orderId: order.id, paymentUrl: payriffResult.paymentUrl });
+  // Chewick confirms by polling rather than by a trusted callback, so the
+  // pending Payment row is what the poller looks for. At this point we only
+  // have the link id — the transaction id arrives with the first callback.
+  if (checkout.provider === 'chewick') {
+    await prisma.payment.create({
+      data: {
+        orderId: order.id,
+        amount: total,
+        status: 'PENDING',
+        linkId: checkout.providerOrderId,
+      },
+    });
+  }
+
+  res.json({ orderId: order.id, paymentUrl: checkout.paymentUrl });
 }));
 
 router.get('/:id', asyncHandler(async (req, res) => {
@@ -225,7 +233,7 @@ router.put('/:id/status', adminGuard, validate(UpdateStatusSchema), asyncHandler
 
   if (
     currentOrder.status === 'PENDING_PAYMENT' &&
-    currentOrder.paymentType === 'payriff' &&
+    ONLINE_PROVIDERS.includes(currentOrder.paymentType as typeof ONLINE_PROVIDERS[number]) &&
     currentOrder.payment?.status !== 'PAID' &&
     status !== 'CANCELLED'
   ) {
