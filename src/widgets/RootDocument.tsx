@@ -28,11 +28,14 @@ export function RootDocument({ lang, children }: { lang: string; children: React
   return (
     <html lang={lang} className={`${displayFont.variable} ${bodyFont.variable} ${priceFont.variable}`}>
       <body className="app-shell antialiased">
+        {/* lazyOnload, not afterInteractive: gtag.js is ~193 KB, the single
+            largest resource on the page, and competed with hydration for the
+            main thread. Analytics does not need to beat first paint. */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-F9EY1KF98E"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
-        <Script id="gtag-init" strategy="afterInteractive">{`
+        <Script id="gtag-init" strategy="lazyOnload">{`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());

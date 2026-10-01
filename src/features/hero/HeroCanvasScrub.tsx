@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
+import { ensureScrollTrigger } from '@/shared/lib/scrollTrigger';
 import {
   getHeroFramePath,
   HERO_FRAME_COUNT,
@@ -38,8 +38,6 @@ function HeroTitleLine({ text }: { text: string }) {
     </>
   );
 }
-
-gsap.registerPlugin(ScrollTrigger);
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -187,9 +185,31 @@ export function HeroCanvasScrub() {
       loadFrame(i);
     }
 
-    // Load remaining frames in small batches to avoid decode spikes
-    const BATCH_SIZE = isMobile ? 4 : frameCount;
+    // Load remaining frames in small batches to avoid decode spikes. Desktop
+    // used to queue every remaining frame at once, which landed ~100 decodes in
+    // a single window; bound it the same way mobile is bound.
+    const BATCH_SIZE = isMobile ? 4 : 12;
     let nextBatchStart = preloadCount;
+
+    // requestIdleCallback alone is not enough to guarantee progress: while the
+    // main thread is saturated it can be deferred well past its timeout, which
+    // is how the sequence previously sat unloaded for seconds. Race it against a
+    // timer so whichever comes first advances the batch, and let `scheduled`
+    // collapse the duplicate.
+    let scheduled = false;
+    const scheduleNextBatch = (delay: number) => {
+      if (cancelled || nextBatchStart >= frameCount) return;
+      scheduled = true;
+      const run = () => {
+        if (!scheduled) return;
+        scheduled = false;
+        loadNextBatch();
+      };
+      if (typeof window.requestIdleCallback === 'function') {
+        idleHandles.push(window.requestIdleCallback(run, { timeout: delay }));
+      }
+      timeoutHandles.push(setTimeout(run, delay));
+    };
 
     const loadNextBatch = () => {
       if (cancelled || nextBatchStart >= frameCount) return;
@@ -198,20 +218,10 @@ export function HeroCanvasScrub() {
         loadFrame(i);
       }
       nextBatchStart = end;
-      if (nextBatchStart < frameCount) {
-        if (typeof window.requestIdleCallback === 'function') {
-          idleHandles.push(window.requestIdleCallback(loadNextBatch, { timeout: 3000 }));
-        } else {
-          timeoutHandles.push(setTimeout(loadNextBatch, 100));
-        }
-      }
+      scheduleNextBatch(100);
     };
 
-    if (typeof window.requestIdleCallback === 'function') {
-      idleHandles.push(window.requestIdleCallback(loadNextBatch, { timeout: 2000 }));
-    } else {
-      timeoutHandles.push(setTimeout(loadNextBatch, 200));
-    }
+    scheduleNextBatch(200);
 
     return () => {
       cancelled = true;
@@ -257,6 +267,10 @@ export function HeroCanvasScrub() {
       const section = sectionRef.current;
       if (!section || !isSequenceReady) return;
 
+      // Registering here rather than at module scope keeps ScrollTrigger's
+      // initial forced layout off the hydration critical path.
+      ensureScrollTrigger();
+
       syncCanvasSize();
 
       const playhead = { frame: 0 };
@@ -273,7 +287,13 @@ export function HeroCanvasScrub() {
         scrollTrigger: {
           trigger: section,
           start: 'top top',
-          end: '+=200vh',
+          // Not '+=200vh': ScrollTrigger's offset parser only scales '%' by the
+          // scroller size, so a 'vh' suffix falls through to parseFloat and is
+          // read as 200 *pixels*. That crammed all 120 frames into 200px of
+          // scroll — the sequence hit the last frame almost immediately and then
+          // sat there. A function keeps the intent explicit and is re-evaluated
+          // on refresh, which invalidateOnRefresh below already triggers.
+          end: () => `+=${window.innerHeight * 2}`,
           pin: true,
           pinSpacing: true,
           scrub: 0.3,

@@ -11,7 +11,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "extract:hero-frames": "node scripts/extract-hero-frames.mjs"
+    "extract:hero-frames": "node scripts/extract-hero-frames.mjs",
+    "perf:audit": "node scripts/perf-audit.mjs",
+    "perf:bench": "node scripts/perf-bench.mjs",
+    "perf:profile": "node scripts/perf-profile.mjs",
+    "perf:trace": "node scripts/perf-render-trace.mjs"
   },
   "dependencies": {
     "@fal-ai/client": "^1.9.5",
@@ -42,6 +46,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
