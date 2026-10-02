@@ -12,6 +12,7 @@ import {
   restGoal,
 } from './heroFrameConfig';
 import { useHeroFrames } from './useHeroFrames';
+import { useHeroGlide } from './useHeroGlide';
 import { useLang } from '@/providers/LanguageProvider';
 
 const PINK_WORD_RE = /güllər|flowers|цветы/i;
@@ -66,6 +67,8 @@ export function HeroCanvasScrub() {
   const wakeRef = useRef<() => void>(() => {});
   const reduce = useSyncExternalStore(subscribeReduced, reducedSnapshot, reducedServerSnapshot);
   const { variant, count, bitmapsRef, loadedRef, want } = useHeroFrames(!reduce, wakeRef);
+  // once the visitor scrolls into the hero, the film plays itself out to whichever end they headed for
+  useHeroGlide(sectionRef, stageRef, reduce);
   const { t } = useLang();
 
   // The pink letters float only while the hero is on screen
