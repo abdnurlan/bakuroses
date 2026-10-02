@@ -57,9 +57,10 @@ export function nearestLoaded(index: number, loaded: readonly boolean[]): number
   return -1;
 }
 
-/** first `head` frames, then coarse-to-fine so any scroll position soon has a nearby frame */
+/** first `head` frames and the last one, then coarse-to-fine so any scroll position soon has a nearby frame */
 export function loadOrder(count: number, head: number): number[] {
   const order = Array.from({ length: Math.min(head, count) }, (_, i) => i);
+  if (count > head) order.push(count - 1);
   const seen = new Set(order);
   let step = 1;
   while (step * 2 < count) step *= 2;

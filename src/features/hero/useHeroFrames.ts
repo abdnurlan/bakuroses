@@ -5,7 +5,9 @@ import { FrameDecoder } from './frameDecoder';
 import { getHeroFramePath, HERO_MOBILE_QUERY, HERO_SPECS, loadOrder, type HeroVariant } from './heroFrameConfig';
 
 const DECODERS = 2; // concurrent worker decodes
-const FETCHERS = 8; // concurrent frame downloads
+// concurrent frame downloads: frames are small, so first-visit loading is bound by
+// per-request latency (~250 ms origin TTFB), not bandwidth — HTTP/2 multiplexes these
+const FETCHERS = 24;
 const AHEAD = 10; // frames kept decoded ahead of the playhead, in the scroll direction
 const BEHIND = 3;
 
