@@ -57,6 +57,24 @@ export function ProductGrid() {
   const lastTimeRef = useRef<number | null>(null);
   const isVisibleRef = useRef(true);
   const viewportRef = useRef<HTMLDivElement>(null);
+  // Cards slide in sideways from a clipped strip, so native lazy loading only starts a photo
+  // once its card is already on screen. Fetch them all while the strip is still ~1.5 screens away.
+  const [nearby, setNearby] = useState(false);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setNearby(true);
+        io.disconnect();
+      },
+      { rootMargin: '1500px 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -163,7 +181,7 @@ export function ProductGrid() {
               className="product-marquee-slide"
               style={{ width: slideWidth, flexShrink: 0 }}
             >
-              <ProductCard product={product} sizes={`${CARD_WIDTH}px`} />
+              <ProductCard product={product} sizes={`${CARD_WIDTH}px`} eager={nearby} />
             </div>
           ))}
         </motion.div>

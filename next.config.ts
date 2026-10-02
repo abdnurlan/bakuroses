@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
   output: process.env.NEXT_OUTPUT_STANDALONE === '1' ? 'standalone' : undefined,
   reactCompiler: true,
   images: {
+    // Uploads get a new UUID filename when replaced, so optimized copies never go stale.
+    // The 4h default made every image revalidate (re-run sharp) on the 4-vCPU server
+    // through the day, which queued requests and left cards blank for seconds.
+    minimumCacheTTL: 2678400, // 31 days
+
     remotePatterns: [
       { protocol: 'https', hostname: '**.fal.media' },
       { protocol: 'https', hostname: '**.fal.run' },

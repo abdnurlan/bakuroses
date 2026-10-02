@@ -70,7 +70,13 @@ function CategoryCard({ cat, index }: { cat: Category; index: number }) {
               alt={name}
               fill
               className="cat-card__img"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              // matches .cat-grid: 5 columns (~260px card, image 116% for the parallax) → 4 → 2 → 1;
+              // featured cards span both columns at tablet width
+              sizes={
+                isFeatured
+                  ? '(max-width: 900px) 100vw, (max-width: 1200px) 29vw, 300px'
+                  : '(max-width: 540px) 100vw, (max-width: 900px) 58vw, (max-width: 1200px) 29vw, 300px'
+              }
             />
           )}
         </motion.div>

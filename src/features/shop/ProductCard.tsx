@@ -15,6 +15,8 @@ interface ProductCardProps {
   product: Product;
   /** next/image `sizes` for the slot the card sits in */
   sizes?: string;
+  /** load the photo now instead of when the card nears the viewport (cards in a sideways-scrolling strip) */
+  eager?: boolean;
 }
 
 const GRID_SIZES = '(max-width: 640px) 100vw, (max-width: 920px) 50vw, (max-width: 1180px) 33vw, 25vw';
@@ -25,7 +27,7 @@ const BLUR_PLACEHOLDER =
 // Tilt, image parallax and gloss follow the pointer through CSS variables written
 // at most once per frame — no React render and no animation library per card.
 // The hover reveal (name, price, add button) is pure CSS; see `.pc` in globals.css.
-export function ProductCard({ product, sizes = GRID_SIZES }: ProductCardProps) {
+export function ProductCard({ product, sizes = GRID_SIZES, eager = false }: ProductCardProps) {
   const [added, setAdded] = useState(false);
   const [hoverArmed, setHoverArmed] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -94,6 +96,7 @@ export function ProductCard({ product, sizes = GRID_SIZES }: ProductCardProps) {
             fill
             className="pc-img pc-img-base"
             sizes={sizes}
+            loading={eager ? 'eager' : 'lazy'}
             placeholder="blur"
             blurDataURL={BLUR_PLACEHOLDER}
           />
