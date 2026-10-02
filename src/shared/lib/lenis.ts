@@ -2,20 +2,21 @@ import Lenis from 'lenis';
 
 let lenisInstance: Lenis | null = null;
 
-export function getLenis(): Lenis {
-  if (typeof window === 'undefined') throw new Error('Lenis is client-only');
-  if (!lenisInstance) {
-    const isMobile = window.innerWidth < 768;
-    lenisInstance = new Lenis({
-      autoRaf: false,
-      lerp: isMobile ? 0.14 : 0.085,
-      duration: isMobile ? 0.9 : 1.2,
-      easing: (t) => 1 - Math.pow(1 - t, 4),
-      orientation: 'vertical',
-      smoothWheel: true,
-      touchMultiplier: 1.15,
-    });
-  }
+export function createLenis(): Lenis {
+  lenisInstance?.destroy();
+  lenisInstance = new Lenis({
+    // 0.2 keeps the wheel smooth without the "heavy", lagging feel of low lerp values.
+    // Touch scrolling stays native (Lenis only smooths the wheel by default).
+    lerp: 0.2,
+    autoRaf: true,
+    // pauses itself whenever <html> gets overflow: hidden (modals, drawers)
+    autoToggle: true,
+  });
+  return lenisInstance;
+}
+
+/** null when smooth scrolling is off (reduced motion) or not mounted yet */
+export function getLenis(): Lenis | null {
   return lenisInstance;
 }
 

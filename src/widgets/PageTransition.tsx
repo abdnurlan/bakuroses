@@ -2,7 +2,6 @@
 
 import { useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { gsap } from 'gsap';
 
 // Matches the last segment(s) of the locale-prefixed path e.g. /az/shop → /shop
 function getOverlayColor(pathname: string): string {
@@ -32,11 +31,11 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
 
     overlay.style.backgroundColor = getOverlayColor(pathname);
 
-    gsap.killTweensOf(overlay);
-    gsap.fromTo(
-      overlay,
-      { scaleX: 1, transformOrigin: 'left center' },
-      { scaleX: 0, transformOrigin: 'left center', duration: 0.7, ease: 'power3.inOut' }
+    for (const running of overlay.getAnimations()) running.cancel();
+    // WAAPI runs on the compositor: the wipe stays smooth while the new page hydrates
+    overlay.animate(
+      [{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }],
+      { duration: 700, easing: 'cubic-bezier(0.76, 0, 0.24, 1)' },
     );
   }, [pathname]);
 

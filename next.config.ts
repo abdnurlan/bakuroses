@@ -17,8 +17,20 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
   },
+  poweredByHeader: false,
   experimental: {
     scrollRestoration: false,
+    // not in Next's default list: import only the icons actually used
+    optimizePackageImports: ['@phosphor-icons/react'],
+  },
+  async headers() {
+    return [
+      {
+        // Hero frames are requested as ?v=HERO_FRAMES_VERSION (heroFrameConfig.ts) — bump it when they change
+        source: '/hero-frames/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+    ];
   },
   async rewrites() {
     return [

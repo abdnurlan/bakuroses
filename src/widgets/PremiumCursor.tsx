@@ -36,12 +36,24 @@ export function PremiumCursor() {
 
     document.body.classList.add('has-premium-cursor');
 
-    const tick = () => {
-      currentRef.current.x += (targetRef.current.x - currentRef.current.x) * 0.18;
-      currentRef.current.y += (targetRef.current.y - currentRef.current.y) * 0.18;
+    let placed = false;
 
-      root.style.transform = `translate3d(${currentRef.current.x}px, ${currentRef.current.y}px, 0)`;
-      rafRef.current = window.requestAnimationFrame(tick);
+    const tick = () => {
+      const current = currentRef.current;
+      const target = targetRef.current;
+      current.x += (target.x - current.x) * 0.18;
+      current.y += (target.y - current.y) * 0.18;
+
+      // Sleep once the cursor has caught up; the next mousemove wakes it
+      if (Math.abs(target.x - current.x) < 0.1 && Math.abs(target.y - current.y) < 0.1) {
+        current.x = target.x;
+        current.y = target.y;
+        rafRef.current = null;
+      } else {
+        rafRef.current = window.requestAnimationFrame(tick);
+      }
+
+      root.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`;
     };
 
     const syncTargetState = (element: HTMLElement | null) => {
@@ -68,9 +80,13 @@ export function PremiumCursor() {
     const handleMove = (event: MouseEvent) => {
       targetRef.current = { x: event.clientX, y: event.clientY };
 
-      if (!rafRef.current) {
+      if (!placed) {
+        // first move: appear right under the pointer instead of flying in from 0,0
+        placed = true;
         currentRef.current = { x: event.clientX, y: event.clientY };
         root.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
+      }
+      if (!rafRef.current) {
         rafRef.current = window.requestAnimationFrame(tick);
       }
 

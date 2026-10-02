@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,6 +19,10 @@ import { useAppStore } from '@/shared/store';
 import { getCategoryName } from '@/lib/i18n';
 
 type SortOption = 'default' | 'price_asc' | 'price_desc' | 'newest';
+
+// Cards are mounted a page at a time as the visitor scrolls: mounting the whole
+// catalogue (~250 cards, each with images and hover effects) at once froze the page.
+const PAGE_SIZE = 24;
 
 const PRICE_RANGES = [
   { label: '≤ 50 ₼', min: 0, max: 50 },
@@ -83,7 +87,9 @@ function ShopInner() {
     return () => clearTimeout(id);
   }, [search]);
 
-  const pushUrl = useCallback(() => {
+  // Keep the URL in sync with the filters. A plain effect rather than a manual
+  // useCallback, so the React Compiler can optimise this component.
+  useEffect(() => {
     const params = new URLSearchParams();
     if (activeCategory) params.set('category', activeCategory);
     if (debouncedSearch) params.set('search', debouncedSearch);
@@ -100,9 +106,7 @@ function ShopInner() {
     if (current !== target) {
       router.replace(target, { scroll: false });
     }
-  }, [activeCategory, debouncedSearch, priceMin, priceMax, sort, router]);
-
-  useEffect(() => { pushUrl(); }, [pushUrl]);
+  }, [activeCategory, debouncedSearch, priceMin, priceMax, sort, router, lp]);
 
   const categoriesQuery = useQuery<Category[]>({
     queryKey: ['categories'],
@@ -125,6 +129,28 @@ function ShopInner() {
   const categories = categoriesQuery.data ?? [];
   const products = productsQuery.data ?? [];
   const isLoading = productsQuery.isLoading;
+
+  // a new filter combination starts again from the first page
+  const listKey = `${activeCategory}|${debouncedSearch}|${priceMin}|${priceMax}|${sort}`;
+  const [shown, setShown] = useState({ key: listKey, count: PAGE_SIZE });
+  const visibleCount = shown.key === listKey ? shown.count : PAGE_SIZE;
+  const visibleProducts = products.slice(0, visibleCount);
+  const hasMore = visibleCount < products.length;
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    // re-created after every page, so a sentinel still in range loads the next one too
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setShown({ key: listKey, count: visibleCount + PAGE_SIZE });
+      },
+      { rootMargin: '0px 0px 1200px 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, listKey, visibleCount]);
   const totalCategoryCount = categories.reduce((sum, cat) => sum + (cat._count?.products ?? 0), 0);
 
   const hasFilters = !!(activeCategory || debouncedSearch || priceMin != null || priceMax != null || sort !== 'default');
@@ -386,22 +412,20 @@ function ShopInner() {
               </button>
             </motion.div>
           ) : (
-            <motion.div className="shop-grid" layout>
-              <AnimatePresence mode="popLayout">
-                {products.map((product, i) => (
-                  <motion.div
+            <>
+              <div className="shop-grid">
+                {visibleProducts.map((product, i) => (
+                  <div
                     key={product.id}
-                    layout
-                    initial={false}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.96 }}
-                    transition={{ duration: 0.28, delay: Math.min(i * 0.04, 0.28) }}
+                    className="shop-grid-item"
+                    style={{ '--i': i % PAGE_SIZE } as React.CSSProperties}
                   >
                     <ProductCard product={product} />
-                  </motion.div>
+                  </div>
                 ))}
-              </AnimatePresence>
-            </motion.div>
+              </div>
+              {hasMore && <div ref={sentinelRef} className="shop-grid-sentinel" aria-hidden="true" />}
+            </>
           )}
         </div>
       </div>

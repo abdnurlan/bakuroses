@@ -1,20 +1,21 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
-import { gsap } from 'gsap';
-import { useGSAP } from '@gsap/react';
 import { ShoppingCart } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/shared/store';
-import { EASE, DURATION } from '@/lib/animation-tokens';
+import { DURATION } from '@/lib/animation-tokens';
 import { useLang } from '@/providers/LanguageProvider';
 import { useLocalePath } from '@/hooks/useLocalePath';
 
 
+// GSAP power4.out / power3.in / power2.out equivalents
+const EASE_OPEN = [0.22, 1, 0.36, 1] as const;
+const EASE_CLOSE = [0.5, 0, 0.75, 0] as const;
+const EASE_ITEM = [0.33, 1, 0.68, 1] as const;
+
 export function CartDrawer() {
-  const drawerRef = useRef<HTMLDivElement>(null);
-  const itemsRef = useRef<HTMLDivElement>(null);
   const { t } = useLang();
   const lp = useLocalePath();
 
@@ -28,41 +29,7 @@ export function CartDrawer() {
     [cartItems]
   );
 
-  useGSAP(
-    () => {
-      if (ui.isCartOpen) {
-        gsap.to(drawerRef.current, {
-          x: 0,
-          duration: DURATION.slow,
-          ease: 'power4.out',
-          delay: 0.05,
-        });
-
-        if (itemsRef.current) {
-          const items = itemsRef.current.querySelectorAll<HTMLElement>('[data-cart-item]');
-          gsap.fromTo(
-            items,
-            { opacity: 0, x: 16 },
-            {
-              opacity: 1,
-              x: 0,
-              duration: DURATION.fast,
-              stagger: 0.06,
-              delay: DURATION.slow * 0.6,
-              ease: 'power2.out',
-            }
-          );
-        }
-      } else {
-        gsap.to(drawerRef.current, {
-          x: '100%',
-          duration: DURATION.normal,
-          ease: 'power3.in',
-        });
-      }
-    },
-    { scope: drawerRef, dependencies: [ui.isCartOpen] }
-  );
+  const isOpen = ui.isCartOpen;
 
   return (
     <>
@@ -85,8 +52,14 @@ export function CartDrawer() {
         )}
       </AnimatePresence>
 
-      <div
-        ref={drawerRef}
+      <motion.div
+        initial={false}
+        animate={{ x: isOpen ? '0%' : '100%' }}
+        transition={
+          isOpen
+            ? { duration: DURATION.slow, ease: EASE_OPEN, delay: 0.05 }
+            : { duration: DURATION.normal, ease: EASE_CLOSE }
+        }
         style={{
           position: 'fixed',
           top: 0,
@@ -97,7 +70,7 @@ export function CartDrawer() {
           zIndex: 'var(--z-cart-drawer)',
           backgroundColor: 'var(--color-background)',
           boxShadow: '-12px 0 48px rgba(54,44,36,0.12)',
-          transform: 'translateX(100%)',
+          x: '100%',
           display: 'flex',
           flexDirection: 'column',
         }}
@@ -142,7 +115,7 @@ export function CartDrawer() {
           </button>
         </div>
 
-        <div ref={itemsRef} style={{ flex: 1, overflowY: 'auto', padding: '1rem 2rem' }}>
+        <div data-lenis-prevent style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', padding: '1rem 2rem' }}>
           {cartItems.length === 0 ? (
             <p
               style={{
@@ -158,13 +131,19 @@ export function CartDrawer() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
               <AnimatePresence>
-                {cartItems.map((item) => (
+                {cartItems.map((item, index) => (
                   <motion.div
                     key={item.product.id}
-                    data-cart-item
                     layout
+                    initial={false}
+                    // items slide in once the drawer has mostly arrived
+                    animate={isOpen ? { opacity: 1, x: 0 } : { opacity: 0, x: 16 }}
                     exit={{ opacity: 0, x: 20, height: 0 }}
-                    transition={{ duration: DURATION.fast, ease: EASE.snappy }}
+                    transition={
+                      isOpen
+                        ? { duration: DURATION.fast, ease: EASE_ITEM, delay: DURATION.slow * 0.6 + index * 0.06 }
+                        : { duration: 0, delay: DURATION.normal }
+                    }
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -249,7 +228,7 @@ export function CartDrawer() {
           </Link>
 
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }

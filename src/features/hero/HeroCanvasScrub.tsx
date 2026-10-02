@@ -1,20 +1,34 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { gsap } from 'gsap';
-import { useGSAP } from '@gsap/react';
-import { ensureScrollTrigger } from '@/shared/lib/scrollTrigger';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import {
+  approach,
+  canvasDensity,
+  clamp01,
+  coverRect,
   getHeroFramePath,
-  HERO_FRAME_COUNT,
-  HERO_FRAME_COUNT_MOBILE,
-  getEffectiveFrameCount,
-  getEffectivePreloadCount,
-  getMobileFrameIndex,
+  nearestLoaded,
+  REST_AFTER_MS,
+  restGoal,
 } from './heroFrameConfig';
+import { useHeroFrames } from './useHeroFrames';
 import { useLang } from '@/providers/LanguageProvider';
 
 const PINK_WORD_RE = /güllər|flowers|цветы/i;
+
+// How closely the film follows the scroll (ms time-constant); Lenis already smooths the wheel itself
+const TAU_MS = 45;
+// Crossfade resolution between neighbouring frames, so a slow scroll never steps
+const BLEND_STEPS = 24;
+
+const REDUCED_QUERY = '(prefers-reduced-motion: reduce)';
+function subscribeReduced(onChange: () => void) {
+  const mq = window.matchMedia(REDUCED_QUERY);
+  mq.addEventListener('change', onChange);
+  return () => mq.removeEventListener('change', onChange);
+}
+const reducedSnapshot = () => window.matchMedia(REDUCED_QUERY).matches;
+const reducedServerSnapshot = () => false;
 
 function HeroTitleLine({ text }: { text: string }) {
   const match = text.match(PINK_WORD_RE);
@@ -39,217 +53,22 @@ function HeroTitleLine({ text }: { text: string }) {
   );
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
+/**
+ * Scroll-scrubbed frame sequence. The section is 300vh tall with a sticky 100vh
+ * stage, so the film plays over 200vh of scroll with no pinning or layout work.
+ * Frames are decoded off the main thread; the canvas follows the scroll with a
+ * frame-rate independent ease and crossfades neighbouring frames.
+ */
 export function HeroCanvasScrub() {
   const sectionRef = useRef<HTMLElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const isMobileRef = useRef(typeof window !== 'undefined' && window.innerWidth < 768);
-  const frameCountRef = useRef(isMobileRef.current ? HERO_FRAME_COUNT_MOBILE : HERO_FRAME_COUNT);
-
-  const framesRef = useRef<(HTMLImageElement | null)[]>(
-    Array.from({ length: frameCountRef.current }, () => null),
-  );
-  const loadedRef = useRef<boolean[]>(
-    Array.from({ length: frameCountRef.current }, () => false),
-  );
-  const currentFrameRef = useRef(0);
-  const loadedCountRef = useRef(0);
-  const canvasSizeRef = useRef({ w: 0, h: 0 });
-  const rafRef = useRef<number | null>(null);
-  const pendingFrameRef = useRef<number | null>(null);
-
-  const [isSequenceReady, setIsSequenceReady] = useState(false);
+  const wakeRef = useRef<() => void>(() => {});
+  const reduce = useSyncExternalStore(subscribeReduced, reducedSnapshot, reducedServerSnapshot);
+  const { variant, count, bitmapsRef, loadedRef, want } = useHeroFrames(!reduce, wakeRef);
   const { t } = useLang();
 
-  // ── Canvas size sync ──────────────────────────────────────────────
-  const syncCanvasSize = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    // Cap DPR at 1 on mobile to halve canvas pixel count
-    const maxDpr = isMobileRef.current ? 1 : 2;
-    const dpr = clamp(window.devicePixelRatio || 1, 1, maxDpr);
-    const rect = canvas.getBoundingClientRect();
-    const w = Math.max(1, Math.round(rect.width * dpr));
-    const h = Math.max(1, Math.round(rect.height * dpr));
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
-      canvasSizeRef.current = { w, h };
-    }
-  }, []);
-
-  // ── Draw a single frame ───────────────────────────────────────────
-  const drawFrame = useCallback((frameIndex: number): boolean => {
-    const canvas = canvasRef.current;
-    const image = framesRef.current[frameIndex];
-    if (!canvas || !image || !loadedRef.current[frameIndex]) return false;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return false;
-
-    if (canvasSizeRef.current.w === 0 || canvasSizeRef.current.h === 0) {
-      syncCanvasSize();
-    }
-    const { w, h } = canvasSizeRef.current;
-    if (w === 0 || h === 0) return false;
-
-    const scale = Math.max(w / image.naturalWidth, h / image.naturalHeight);
-    const dw = image.naturalWidth * scale;
-    const dh = image.naturalHeight * scale;
-    const dx = (w - dw) / 2;
-    const dy = (h - dh) / 2;
-
-    ctx.drawImage(image, dx, dy, dw, dh);
-    return true;
-  }, [syncCanvasSize]);
-
-  // ── Nearest-frame fallback ────────────────────────────────────────
-  const renderNearest = useCallback(
-    (target: number) => {
-      const bounded = clamp(target, 0, frameCountRef.current - 1);
-      if (drawFrame(bounded)) return;
-      for (let d = 1; d < frameCountRef.current; d++) {
-        if (bounded - d >= 0 && drawFrame(bounded - d)) return;
-        if (bounded + d < frameCountRef.current && drawFrame(bounded + d)) return;
-      }
-    },
-    [drawFrame],
-  );
-
-  // ── Batched rAF draw ──────────────────────────────────────────────
-  const scheduleRender = useCallback(
-    (frameIndex: number) => {
-      pendingFrameRef.current = frameIndex;
-      if (rafRef.current !== null) return;
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        const f = pendingFrameRef.current;
-        if (f !== null) renderNearest(f);
-      });
-    },
-    [renderNearest],
-  );
-
-  // ── Frame loading ─────────────────────────────────────────────────
-  useEffect(() => {
-    let cancelled = false;
-    const idleHandles: number[] = [];
-    const timeoutHandles: ReturnType<typeof setTimeout>[] = [];
-
-    const isMobile = isMobileRef.current;
-    const frameCount = frameCountRef.current;
-    const preloadCount = getEffectivePreloadCount();
-    // On mobile, step through full 120-frame set to pick 60 evenly-spaced frames
-    const step = isMobile ? Math.floor(HERO_FRAME_COUNT / frameCount) : 1;
-
-    framesRef.current = Array.from({ length: frameCount }, () => null);
-    loadedRef.current = Array.from({ length: frameCount }, () => false);
-    loadedCountRef.current = 0;
-
-    const loadFrame = (virtualIndex: number) => {
-      const physicalIndex = isMobile
-        ? getMobileFrameIndex(virtualIndex, HERO_FRAME_COUNT, frameCount)
-        : virtualIndex;
-      const img = new Image();
-      img.decoding = 'async';
-      img.src = getHeroFramePath(physicalIndex);
-
-      img.onload = () => {
-        if (cancelled) return;
-        framesRef.current[virtualIndex] = img;
-        loadedRef.current[virtualIndex] = true;
-        loadedCountRef.current += 1;
-
-        if (virtualIndex === 0) {
-          // Defer to next paint so canvas has layout dimensions
-          requestAnimationFrame(() => {
-            if (cancelled) return;
-            syncCanvasSize();
-            setIsSequenceReady(true);
-            scheduleRender(0);
-          });
-          return;
-        }
-
-        if (virtualIndex === currentFrameRef.current || loadedCountRef.current === 1) {
-          scheduleRender(currentFrameRef.current);
-        }
-      };
-    };
-
-    for (let i = 0; i < Math.min(preloadCount, frameCount); i++) {
-      loadFrame(i);
-    }
-
-    // Load remaining frames in small batches to avoid decode spikes. Desktop
-    // used to queue every remaining frame at once, which landed ~100 decodes in
-    // a single window; bound it the same way mobile is bound.
-    const BATCH_SIZE = isMobile ? 4 : 12;
-    let nextBatchStart = preloadCount;
-
-    // requestIdleCallback alone is not enough to guarantee progress: while the
-    // main thread is saturated it can be deferred well past its timeout, which
-    // is how the sequence previously sat unloaded for seconds. Race it against a
-    // timer so whichever comes first advances the batch, and let `scheduled`
-    // collapse the duplicate.
-    let scheduled = false;
-    const scheduleNextBatch = (delay: number) => {
-      if (cancelled || nextBatchStart >= frameCount) return;
-      scheduled = true;
-      const run = () => {
-        if (!scheduled) return;
-        scheduled = false;
-        loadNextBatch();
-      };
-      if (typeof window.requestIdleCallback === 'function') {
-        idleHandles.push(window.requestIdleCallback(run, { timeout: delay }));
-      }
-      timeoutHandles.push(setTimeout(run, delay));
-    };
-
-    const loadNextBatch = () => {
-      if (cancelled || nextBatchStart >= frameCount) return;
-      const end = Math.min(nextBatchStart + BATCH_SIZE, frameCount);
-      for (let i = nextBatchStart; i < end; i++) {
-        loadFrame(i);
-      }
-      nextBatchStart = end;
-      scheduleNextBatch(100);
-    };
-
-    scheduleNextBatch(200);
-
-    return () => {
-      cancelled = true;
-      if ('cancelIdleCallback' in window) {
-        idleHandles.forEach((h) => window.cancelIdleCallback(h));
-      }
-      timeoutHandles.forEach(clearTimeout);
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-    };
-  }, [syncCanvasSize, scheduleRender]);
-
-  // ── Canvas resize observer ────────────────────────────────────────
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-
-    const ro = new ResizeObserver(() => {
-      syncCanvasSize();
-      renderNearest(currentFrameRef.current);
-    });
-    ro.observe(section);
-    return () => ro.disconnect();
-  }, [syncCanvasSize, renderNearest]);
-
-  // ── hero-char-float — paused when hero scrolled out ──────────────
+  // The pink letters float only while the hero is on screen
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
@@ -261,102 +80,152 @@ export function HeroCanvasScrub() {
     return () => io.disconnect();
   }, []);
 
-  // ── GSAP scroll scrub ─────────────────────────────────────────────
-  useGSAP(
-    () => {
-      const section = sectionRef.current;
-      if (!section || !isSequenceReady) return;
+  useEffect(() => {
+    const section = sectionRef.current;
+    const stage = stageRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d', { alpha: false });
+    if (!section || !stage || !canvas || !ctx) return;
 
-      // Registering here rather than at module scope keeps ScrollTrigger's
-      // initial forced layout off the hydration critical path.
-      ensureScrollTrigger();
+    const last = count - 1;
+    let stageH = stage.clientHeight;
+    const readProgress = () => {
+      const r = section.getBoundingClientRect();
+      const span = r.height - stageH;
+      return span > 0 ? clamp01(-r.top / span) : 0;
+    };
 
-      syncCanvasSize();
+    let current = readProgress() * last;
+    let seen = current;
+    let movedAt = -Infinity;
+    let then = performance.now();
+    let dir = 1;
+    let drawn = -1;
+    let raf = 0;
+    let visible = true;
 
-      const playhead = { frame: 0 };
+    const draw = (pos: number) => {
+      const bitmaps = bitmapsRef.current;
+      const loaded = loadedRef.current;
+      let base = Math.floor(pos);
+      let blend = Math.round((pos - base) * BLEND_STEPS);
+      if (blend === BLEND_STEPS) {
+        base = Math.min(base + 1, last);
+        blend = 0;
+      }
+      const a = nearestLoaded(base, loaded);
+      const bmpA = a >= 0 ? bitmaps[a] : null;
+      if (!bmpA) return;
+      const next = Math.min(base + 1, last);
+      if (a !== base || next === base || !loaded[next]) blend = 0;
+      const key = a * BLEND_STEPS + blend;
+      if (key === drawn) return;
+      const r = coverRect(canvas.width, canvas.height, bmpA.width, bmpA.height);
+      ctx.globalAlpha = 1;
+      ctx.drawImage(bmpA, r.x, r.y, r.w, r.h);
+      const bmpB = blend > 0 ? bitmaps[next] : null;
+      if (bmpB) {
+        ctx.globalAlpha = blend / BLEND_STEPS;
+        ctx.drawImage(bmpB, r.x, r.y, r.w, r.h);
+        ctx.globalAlpha = 1;
+      }
+      if (drawn < 0) canvas.style.opacity = '1';
+      drawn = key;
+    };
 
-      const tween = gsap.to(playhead, {
-        frame: frameCountRef.current - 1,
-        ease: 'none',
-        duration: 1,
-        onUpdate() {
-          const f = Math.round(playhead.frame);
-          currentFrameRef.current = f;
-          scheduleRender(f);
-        },
-        scrollTrigger: {
-          trigger: section,
-          start: 'top top',
-          // Not '+=200vh': ScrollTrigger's offset parser only scales '%' by the
-          // scroller size, so a 'vh' suffix falls through to parseFloat and is
-          // read as 200 *pixels*. That crammed all 120 frames into 200px of
-          // scroll — the sequence hit the last frame almost immediately and then
-          // sat there. A function keeps the intent explicit and is re-evaluated
-          // on refresh, which invalidateOnRefresh below already triggers.
-          end: () => `+=${window.innerHeight * 2}`,
-          pin: true,
-          pinSpacing: true,
-          scrub: 0.3,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-          onRefresh() {
-            syncCanvasSize();
-            scheduleRender(currentFrameRef.current);
-          },
-        },
-      });
+    const tick = (now: number) => {
+      raf = 0;
+      if (!visible) return;
+      const dt = Math.min(64, Math.max(0, now - then));
+      then = now;
+      const target = readProgress() * last;
+      if (Math.abs(target - seen) > 1e-4) {
+        dir = target > seen ? 1 : -1;
+        seen = target;
+        movedAt = now;
+      }
+      const idle = now - movedAt;
+      const goal = restGoal(target, idle);
+      current = approach(current, goal, dt, TAU_MS);
+      if (Math.abs(goal - current) < 0.002) current = goal;
+      want(current, dir);
+      draw(current);
+      // Sleep once the film has landed on a frame; scroll or a decoded frame wakes it
+      if (current !== goal || idle < REST_AFTER_MS) raf = requestAnimationFrame(tick);
+    };
 
-      return () => {
-        tween.scrollTrigger?.kill();
-        tween.kill();
-      };
-    },
-    { scope: sectionRef, dependencies: [isSequenceReady] },
-  );
+    const wake = () => {
+      if (raf || !visible) return;
+      then = performance.now();
+      raf = requestAnimationFrame(tick);
+    };
+
+    const resize = () => {
+      stageH = stage.clientHeight;
+      const cw = canvas.clientWidth || 1;
+      const ch = canvas.clientHeight || 1;
+      const density = canvasDensity(cw, ch, window.devicePixelRatio || 1);
+      canvas.width = Math.max(1, Math.round(cw * density));
+      canvas.height = Math.max(1, Math.round(ch * density));
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      // resizing clears the canvas: repaint now rather than show a blank frame
+      drawn = -1;
+      draw(current);
+      wake();
+    };
+
+    const io = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible) wake();
+    });
+    const ro = new ResizeObserver(resize);
+
+    wakeRef.current = wake;
+    resize();
+    ro.observe(canvas);
+    io.observe(section);
+    window.addEventListener('scroll', wake, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+      ro.disconnect();
+      window.removeEventListener('scroll', wake);
+      wakeRef.current = () => {};
+    };
+  }, [variant, count, bitmapsRef, loadedRef, want]);
 
   return (
-    <section
-      ref={sectionRef}
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100dvh',
-        overflow: 'hidden',
-        backgroundColor: '#f4e7ec',
-        backgroundImage: `url(${getHeroFramePath(0)})`,
-        backgroundPosition: 'center',
-        backgroundSize: 'cover',
-      }}
-    >
-      <canvas
-        ref={canvasRef}
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          display: 'block',
-          opacity: isSequenceReady ? 1 : 0,
-          transition: 'opacity 0.5s ease',
-          background: 'transparent',
-        }}
-      />
+    <section ref={sectionRef} className="hero-scrub" aria-labelledby="hero-title">
+      <div ref={stageRef} className="hero-scrub__stage">
+        {/* Poster = frame 1: paints instantly and stays as the fallback (reduced motion, Save-Data) */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          className="hero-scrub__poster"
+          src={getHeroFramePath(0)}
+          alt=""
+          aria-hidden="true"
+          fetchPriority="high"
+          decoding="async"
+        />
+        {!reduce && <canvas ref={canvasRef} className="hero-scrub__canvas" aria-hidden="true" />}
 
-      <div className="hero-video-overlay" />
+        <div className="hero-video-overlay" />
 
-      <div className="hero-video-copy">
-        <p className="hero-video-kicker">{t('hero_kicker')}</p>
-        <h1 className="hero-video-title">
-          {t('hero_title')
-            .split('\n')
-            .map((line, i) => (
-              <span key={i} style={{ display: 'block' }}>
-                <HeroTitleLine text={line} />
-              </span>
-            ))}
-        </h1>
-        <p className="hero-video-subtitle">{t('hero_subtitle')}</p>
+        <div className="hero-video-copy">
+          <p className="hero-video-kicker">{t('hero_kicker')}</p>
+          <h1 id="hero-title" className="hero-video-title">
+            {t('hero_title')
+              .split('\n')
+              .map((line, i) => (
+                <span key={i} style={{ display: 'block' }}>
+                  <HeroTitleLine text={line} />
+                </span>
+              ))}
+          </h1>
+          <p className="hero-video-subtitle">{t('hero_subtitle')}</p>
+        </div>
       </div>
     </section>
   );

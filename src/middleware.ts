@@ -7,6 +7,8 @@ const BYPASS_PREFIXES = [
   '/_next',
   '/uploads',
   '/hero-frames',
+  // public/images — without this the image optimizer gets a locale redirect instead of the file
+  '/images',
   '/favicon',
   '/logo',
   '/icons',
@@ -18,7 +20,7 @@ const BYPASS_PREFIXES = [
 
 // If a locale-prefixed request targets a static asset, rewrite it back.
 // e.g. /az/hero-frames/frame-0001.webp → /hero-frames/frame-0001.webp
-const STATIC_ASSET_PREFIXES = ['/hero-frames', '/uploads', '/icons', '/logo'];
+const STATIC_ASSET_PREFIXES = ['/hero-frames', '/images', '/uploads', '/icons', '/logo'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

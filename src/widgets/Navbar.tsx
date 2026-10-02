@@ -64,6 +64,13 @@ function NavLink({ label, href, icon, onNavigate, mobile }: {
         const targetTop = target.getBoundingClientRect().top + window.scrollY - navHeight - 16;
         const distance = Math.abs(targetTop - window.scrollY);
 
+        if (!lenis) {
+          // smooth scrolling is off (reduced motion): jump straight there
+          window.scrollTo({ top: targetTop });
+          onNavigate?.();
+          return;
+        }
+
         lenis.scrollTo(window.scrollY, { immediate: true, force: true });
         requestAnimationFrame(() => {
           if (scrollId !== anchorScrollId) return;

@@ -18,13 +18,27 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 // Record every frame index the canvas actually paints, keyed by scroll offset.
 await page.addInitScript(() => {
   window.__frames = [];
+  // Frames arrive as ImageBitmaps decoded in a worker (features/hero/frameDecoder.ts),
+  // posted back as { i, bmp }: remember which frame each bitmap is.
+  const bitmapFrame = new WeakMap();
+  const NativeWorker = window.Worker;
+  window.Worker = function (...args) {
+    const worker = new NativeWorker(...args);
+    worker.addEventListener('message', (e) => {
+      if (e.data && e.data.bmp) bitmapFrame.set(e.data.bmp, e.data.i + 1);
+    });
+    return worker;
+  };
+  window.Worker.prototype = NativeWorker.prototype;
   const proto = CanvasRenderingContext2D.prototype;
   const original = proto.drawImage;
   proto.drawImage = function (image, ...rest) {
-    if (image && image.src && image.src.includes('/hero-frames/')) {
+    let frame = bitmapFrame.get(image);
+    if (!frame && image && image.src && image.src.includes('/hero-frames/')) {
       const m = image.src.match(/(\d+)\.webp/);
-      if (m) window.__frames.push({ frame: Number(m[1]), y: Math.round(window.scrollY) });
+      if (m) frame = Number(m[1]);
     }
+    if (frame) window.__frames.push({ frame, y: Math.round(window.scrollY) });
     return original.call(this, image, ...rest);
   };
 });

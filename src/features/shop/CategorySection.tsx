@@ -17,6 +17,7 @@ const FALLBACK_CATEGORIES: Category[] = [];
 
 function CategoryCard({ cat, index }: { cat: Category; index: number }) {
   const { locale } = useLang();
+  const lp = useLocalePath();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [canHover] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches,
@@ -51,7 +52,7 @@ function CategoryCard({ cat, index }: { cat: Category; index: number }) {
   const description = getCategoryDescription(locale, cat.slug, cat.description ?? '');
 
   return (
-    <Link href={`/shop?category=${cat.slug}`} className={`cat-card ${isFeatured ? 'cat-card--featured' : ''}`}>
+    <Link href={lp(`/shop?category=${cat.slug}`)} className={`cat-card ${isFeatured ? 'cat-card--featured' : ''}`}>
       <motion.div
         ref={wrapRef}
         className="cat-card__inner"

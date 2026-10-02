@@ -209,11 +209,10 @@ body.has-premium-cursor textarea {
   height: 34px;
   border-radius: 999px;
   border: 1px solid rgba(207, 111, 148, 0.36);
-  background: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.38);
   box-shadow:
     0 10px 24px rgba(149, 108, 126, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(10px);
   transition: transform 0.22s ease, background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
 }
 
@@ -229,8 +228,7 @@ body.has-premium-cursor textarea {
   width: 62px;
   height: 62px;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(223, 154, 180, 0.2) 0%, transparent 68%);
-  filter: blur(10px);
+  background: radial-gradient(circle, rgba(223, 154, 180, 0.2) 0%, rgba(223, 154, 180, 0.08) 45%, transparent 72%);
   opacity: 0.68;
   transition: transform 0.22s ease, opacity 0.22s ease;
 }
@@ -2253,10 +2251,16 @@ video {
     0 28px 56px rgba(0, 0, 0, 0.22);
   perspective: 800px;
   cursor: default;
+  transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), scale 0.2s ease-out;
 }
 
+.pc:active { scale: 0.975; }
+
+/* Tilt follows --pc-rx/--pc-ry (written by ProductCard on mousemove). Only the
+   hovered card gets a transform/layer — idle cards stay flat and cheap. */
 @media (hover: hover) and (pointer: fine) {
-  .pc {
+  .pc:hover {
+    transform: rotateX(var(--pc-rx, 0deg)) rotateY(var(--pc-ry, 0deg));
     will-change: transform;
   }
 }
@@ -2291,6 +2295,8 @@ video {
   inset: -6%;
   width: 112%;
   height: 112%;
+  transform: translate(var(--pc-ix, 0%), var(--pc-iy, 0%));
+  transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .pc-img {
@@ -2340,14 +2346,15 @@ video {
   color: #fff;
   cursor: pointer;
   opacity: 0;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   transition: opacity 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
 
+/* blur only while visible: an invisible backdrop-filter still costs a render pass */
 .pc:hover .pc-view-btn,
 .pc-view-btn:focus-visible {
   opacity: 1;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .pc-view-btn:hover {
@@ -2414,6 +2421,8 @@ video {
   box-shadow:
     0 0 0 1px rgba(255,255,255,0.12) inset,
     0 6px 20px rgba(184, 80, 122, 0.45);
+  transform: translateY(-2px) scale(1.05);
+  transition: transform 0.28s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* bottom reveal */
@@ -2436,6 +2445,9 @@ video {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  transition:
+    transform 0.36s cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 0.36s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .pc-name {
@@ -2474,7 +2486,35 @@ video {
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font-body);
-  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.36s cubic-bezier(0.23, 1, 0.32, 1) 0.05s,
+    opacity 0.36s cubic-bezier(0.23, 1, 0.32, 1) 0.05s,
+    scale 0.15s ease-out;
+}
+
+.pc-btn:active { scale: 0.92; }
+
+/* Mouse devices: name, price lift and add button reveal on hover (or keyboard focus).
+   Touch devices keep them visible. */
+@media (hover: hover) and (pointer: fine) {
+  .pc:not(:hover):not(:focus-within) .pc-price {
+    transform: none;
+  }
+
+  .pc:not(:hover):not(:focus-within) .pc-name-wrap {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  .pc:not(:hover):not(:focus-within) .pc-btn {
+    opacity: 0;
+    transform: translateY(20px);
+    backdrop-filter: none;
+    transition-delay: 0s;
+  }
 }
 
 .pc-btn:hover {
@@ -2495,6 +2535,11 @@ video {
   z-index: 6;
   pointer-events: none;
   border-radius: inherit;
+  background: radial-gradient(
+    ellipse at var(--pc-gx, 50%) var(--pc-gy, 50%),
+    rgba(255, 255, 255, 0.11) 0%,
+    transparent 62%
+  );
 }
 
 /* footer strip */
@@ -2550,8 +2595,10 @@ video {
   background: rgba(207, 111, 148, 0.1);
   color: #cf6f94;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, scale 0.15s ease-out;
 }
+
+.pc-footer-btn:active { scale: 0.88; }
 
 .pc-footer-btn:hover {
   background: #cf6f94;
@@ -2788,6 +2835,45 @@ video {
 
 .hero-video-media.is-ready {
   opacity: 1;
+}
+
+.hero-scrub {
+  position: relative;
+  /* 100vh stage + 200vh of scrubbing */
+  height: 300vh;
+}
+
+.hero-scrub__stage {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  /* vh, not dvh: the stage must not resize while mobile browser bars slide */
+  height: 100vh;
+  overflow: hidden;
+  background-color: #f4e7ec;
+}
+
+.hero-scrub__poster,
+.hero-scrub__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-scrub__poster {
+  object-fit: cover;
+}
+
+.hero-scrub__canvas {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-scrub { height: 100vh; }
+  .hero-scrub__canvas { display: none; }
 }
 
 .hero-video-overlay {
@@ -4985,4 +5071,76 @@ video {
   .cat-card {
     height: 200px;
   }
+}
+
+/* ── Scroll reveals (RevealOnScroll / AnimatedTitleReveal) ─────────
+   JS only sets [data-revealed] once; the browser animates on the compositor. */
+
+.reveal {
+  transition:
+    opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1) var(--reveal-delay, 0s),
+    transform 0.6s cubic-bezier(0.23, 1, 0.32, 1) var(--reveal-delay, 0s);
+}
+
+.reveal--up:not([data-revealed]) {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+.reveal--fade:not([data-revealed]) {
+  opacity: 0;
+  transform: scale(1.015);
+}
+
+.title-reveal {
+  display: inline-block;
+}
+
+.title-reveal__wrap {
+  display: inline-block;
+  overflow: hidden;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+  vertical-align: baseline;
+}
+
+.title-reveal__char {
+  display: inline-block;
+  transition:
+    transform 0.6s cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  transition-delay: calc(var(--reveal-delay, 0s) + var(--i, 0) * 18ms);
+}
+
+.title-reveal:not([data-revealed]) .title-reveal__char {
+  opacity: 0;
+  transform: translateY(115%) rotate(1.5deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .title-reveal__char {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* ── Shop grid paging ── */
+
+.shop-grid-item {
+  animation: shop-card-in 0.42s cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 35ms);
+}
+
+@keyframes shop-card-in {
+  from { opacity: 0; transform: translateY(12px); }
+}
+
+.shop-grid-sentinel {
+  height: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shop-grid-item { animation: none; }
 }
