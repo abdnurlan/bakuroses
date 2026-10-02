@@ -93,7 +93,8 @@ export function useHeroFrames(active: boolean, onDecodedRef: RefObject<() => voi
       if (!decoder || cancelled) return;
       for (const i of queue) {
         if (inflight.size >= DECODERS) return;
-        if (loaded[i] || inflight.has(i)) continue;
+        // only frames already downloaded: a slow request must not hold a decode slot
+        if (loaded[i] || inflight.has(i) || !decoder.isFetched(i)) continue;
         inflight.add(i);
         void decoder.decode(i).then((bmp) => {
           inflight.delete(i);
@@ -117,6 +118,7 @@ export function useHeroFrames(active: boolean, onDecodedRef: RefObject<() => voi
       if (base !== playhead || queue[1] !== Math.min(count - 1, Math.max(0, base + stepDir))) {
         playhead = base;
         queue = around(base, stepDir, count);
+        decoder?.prioritize(queue);
       }
       pump();
     };
@@ -128,7 +130,8 @@ export function useHeroFrames(active: boolean, onDecodedRef: RefObject<() => voi
         { length: count },
         (_, i) => new URL(getHeroFramePath(i * step), window.location.href).href,
       );
-      decoder = new FrameDecoder(urls, loadOrder(count, head), FETCHERS);
+      decoder = new FrameDecoder(urls, loadOrder(count, head), FETCHERS, pump);
+      decoder.prioritize(queue);
       pump();
     };
     if (document.readyState === 'complete') start();
