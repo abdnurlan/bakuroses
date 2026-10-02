@@ -7,6 +7,9 @@ const WORKER = `
 const urls = [];
 const blobs = new Map();
 const FETCH_TIMEOUT_MS = 8000;
+// paused while the hero is off screen, so the frames don't take bandwidth from what the visitor is looking at
+let paused = false;
+const resumers = [];
 function blob(i) {
   let p = blobs.get(i);
   if (!p) {
@@ -32,6 +35,7 @@ self.onmessage = async (e) => {
     let k = 0;
     const next = async () => {
       while (k < order.length) {
+        if (paused) await new Promise((r) => resumers.push(r));
         const i = order[k++];
         try { await blob(i); } catch {}
       }
@@ -39,6 +43,8 @@ self.onmessage = async (e) => {
     for (let c = 0; c < m.fetchers; c++) next();
     return;
   }
+  if (m.type === "pause") { paused = true; return; }
+  if (m.type === "resume") { paused = false; resumers.splice(0).forEach((r) => r()); return; }
   if (m.type === "want") {
     // frames around the playhead jump the download queue
     for (const i of m.list) blob(i).catch(() => {});
@@ -99,6 +105,11 @@ export class FrameDecoder {
   isFetched(i: number): boolean {
     // without a worker, decoding fetches the frame itself
     return !this.worker || this.fetched.has(i);
+  }
+
+  /** stop (or restart) background downloading; frames already in flight still finish */
+  setPaused(paused: boolean) {
+    this.worker?.postMessage({ type: paused ? 'pause' : 'resume' });
   }
 
   /** move these frames to the front of the download queue */

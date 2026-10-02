@@ -66,7 +66,7 @@ export function HeroCanvasScrub() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wakeRef = useRef<() => void>(() => {});
   const reduce = useSyncExternalStore(subscribeReduced, reducedSnapshot, reducedServerSnapshot);
-  const { variant, count, bitmapsRef, loadedRef, want } = useHeroFrames(!reduce, wakeRef);
+  const { variant, count, bitmapsRef, loadedRef, want, setPaused } = useHeroFrames(!reduce, wakeRef);
   // once the visitor scrolls into the hero, the film plays itself out to whichever end they headed for
   useHeroGlide(sectionRef, stageRef, reduce);
   const { t } = useLang();
@@ -180,6 +180,8 @@ export function HeroCanvasScrub() {
 
     const io = new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;
+      // scrolled past the hero: let the page's own images have the bandwidth
+      setPaused(!visible);
       if (visible) wake();
     });
     const ro = new ResizeObserver(resize);
@@ -197,7 +199,7 @@ export function HeroCanvasScrub() {
       window.removeEventListener('scroll', wake);
       wakeRef.current = () => {};
     };
-  }, [variant, count, bitmapsRef, loadedRef, want]);
+  }, [variant, count, bitmapsRef, loadedRef, want, setPaused]);
 
   return (
     <section ref={sectionRef} className="hero-scrub" aria-labelledby="hero-title">

@@ -39,6 +39,8 @@ export type HeroFrames = {
   loadedRef: RefObject<boolean[]>;
   /** where the playhead is, so frames around it are decoded first */
   want: (pos: number, dir: number) => void;
+  /** pause background downloads while the hero is off screen */
+  setPaused: (paused: boolean) => void;
 };
 
 /**
@@ -52,6 +54,12 @@ export function useHeroFrames(active: boolean, onDecodedRef: RefObject<() => voi
   const loadedRef = useRef<boolean[]>([]);
   const wantedRef = useRef<(pos: number, dir: number) => void>(() => {});
   const want = useCallback((pos: number, dir: number) => wantedRef.current(pos, dir), []);
+  const pausedRef = useRef(false);
+  const pauseRef = useRef<(paused: boolean) => void>(() => {});
+  const setPaused = useCallback((paused: boolean) => {
+    pausedRef.current = paused;
+    pauseRef.current(paused);
+  }, []);
 
   useEffect(() => {
     if (!active) return;
@@ -131,6 +139,8 @@ export function useHeroFrames(active: boolean, onDecodedRef: RefObject<() => voi
         (_, i) => new URL(getHeroFramePath(i * step), window.location.href).href,
       );
       decoder = new FrameDecoder(urls, loadOrder(count, head), FETCHERS, pump);
+      if (pausedRef.current) decoder.setPaused(true);
+      pauseRef.current = (paused) => decoder?.setPaused(paused);
       decoder.prioritize(queue);
       pump();
     };
@@ -141,6 +151,7 @@ export function useHeroFrames(active: boolean, onDecodedRef: RefObject<() => voi
       cancelled = true;
       window.removeEventListener('load', start);
       wantedRef.current = () => {};
+      pauseRef.current = () => {};
       decoder?.dispose();
       for (const b of bitmaps) b?.close();
       bitmapsRef.current = [];
@@ -148,5 +159,5 @@ export function useHeroFrames(active: boolean, onDecodedRef: RefObject<() => voi
     };
   }, [active, variant, onDecodedRef]);
 
-  return { variant, count: HERO_SPECS[variant].count, bitmapsRef, loadedRef, want };
+  return { variant, count: HERO_SPECS[variant].count, bitmapsRef, loadedRef, want, setPaused };
 }
