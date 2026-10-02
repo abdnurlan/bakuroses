@@ -19,7 +19,11 @@ interface ProductCardProps {
   eager?: boolean;
 }
 
-const GRID_SIZES = '(max-width: 640px) 100vw, (max-width: 920px) 50vw, (max-width: 1180px) 33vw, 25vw';
+// The shop grid (globals.css .shop-layout/.shop-grid): 1 col ≤380, 2 cols ≤860, 2 cols + 280px
+// sidebar ≤1024, 3 cols ≤1280, then 4 cols capped by --content-max. The image box is 112% of the
+// card (parallax). Oversized `sizes` made phones fetch 1200w photos for ~190px cards.
+const GRID_SIZES =
+  '(max-width: 380px) 100vw, (max-width: 860px) 52vw, (max-width: 1024px) 36vw, (max-width: 1280px) 27vw, (max-width: 1440px) 20vw, 350px';
 
 const BLUR_PLACEHOLDER =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==';
