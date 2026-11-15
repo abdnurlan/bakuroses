@@ -26,6 +26,8 @@ export interface ChewickConfig {
   baseUrl: string;
   username: string;
   password: string;
+  /** Sent as `X-Api-key` on every request. The prod gateway rejects login without it. */
+  apiKey: string;
   /** How many days a generated payment link stays valid. Chewick's validTo is date-only. */
   linkValidDays: number;
   /** Seconds between background status polls for unconfirmed orders. */
@@ -54,11 +56,17 @@ export function chewickConfig(): ChewickConfig {
     throw new Error('CHEWICK_USERNAME and CHEWICK_PASSWORD are required when PAYMENT_PROVIDER=chewick');
   }
 
+  const apiKey = (process.env.CHEWICK_API_KEY ?? '').trim();
+  if (env === 'prod' && !apiKey) {
+    throw new Error('CHEWICK_API_KEY is required when CHEWICK_ENV=prod');
+  }
+
   return {
     env,
     baseUrl: (process.env.CHEWICK_BASE_URL ?? CHEWICK_BASE_URLS[env]).replace(/\/+$/, ''),
     username,
     password,
+    apiKey,
     linkValidDays: positiveInt(process.env.CHEWICK_LINK_VALID_DAYS, 1),
     pollIntervalSeconds: positiveInt(process.env.CHEWICK_POLL_INTERVAL_SECONDS, 30),
     pollMaxAgeMinutes: positiveInt(process.env.CHEWICK_POLL_MAX_AGE_MINUTES, 180),

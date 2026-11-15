@@ -5,6 +5,8 @@ import { chewickConfig } from '../config/payment';
 // Spec notes that shape this file:
 //  - Every amount is in qəpik (1/100 AZN) as a whole number: 4200 === 42.00 AZN.
 //  - Auth is a JWT from POST /v1/merchant/login, sent as `X-Access-Token: Bearer <jwt>`.
+//  - The prod gateway also wants the merchant API key as `X-Api-key`; login
+//    answers 400 without it. Not in the integration PDF.
 //  - /v1/payment/links has NO callbackUrl field — the callback/redirect URLs are
 //    registered with Chewick out-of-band, and the spec tells integrators to poll
 //    GET /v1/payment/transactions/{id}/status. Polling is therefore our source of
@@ -90,12 +92,16 @@ function tokenLifetimeMs(jwt: string): number {
   }
 }
 
+function apiKeyHeader(apiKey: string): Record<string, string> {
+  return apiKey ? { 'X-Api-key': apiKey } : {};
+}
+
 async function login(): Promise<string> {
   const cfg = chewickConfig();
 
   const res = await fetch(`${cfg.baseUrl}/v1/merchant/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...apiKeyHeader(cfg.apiKey) },
     body: JSON.stringify({ username: cfg.username, password: cfg.password }),
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
@@ -144,7 +150,7 @@ export async function chewickLogout(): Promise<void> {
   try {
     await fetch(`${cfg.baseUrl}/v1/merchant/logout`, {
       method: 'POST',
-      headers: { 'X-Access-Token': `Bearer ${token}` },
+      headers: { 'X-Access-Token': `Bearer ${token}`, ...apiKeyHeader(cfg.apiKey) },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch (err) {
@@ -175,6 +181,7 @@ async function authed<T>(path: string, init: RequestInit, retryOn401 = true): Pr
     headers: {
       'Content-Type': 'application/json',
       ...(init.headers ?? {}),
+      ...apiKeyHeader(cfg.apiKey),
       'X-Access-Token': `Bearer ${token}`,
     },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),

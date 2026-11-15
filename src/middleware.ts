@@ -22,6 +22,12 @@ const BYPASS_PREFIXES = [
 // e.g. /az/hero-frames/frame-0001.webp → /hero-frames/frame-0001.webp
 const STATIC_ASSET_PREFIXES = ['/hero-frames', '/images', '/uploads', '/icons', '/logo'];
 
+/** bakuroses.az / www.bakuroses.az → bakuroses.az; localhost and IPs → null */
+function parentDomain(hostname: string): string | null {
+  if (!hostname.includes('.') || /^[\d.]+$/.test(hostname) || hostname.includes(':')) return null;
+  return hostname.split('.').slice(-2).join('.');
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -62,6 +68,14 @@ export function middleware(request: NextRequest) {
         httpOnly: false,
       });
       response.cookies.set('br_paid', '', { path: '/', maxAge: 0 });
+      // The backend may set br_paid for the whole site (Domain=bakuroses.az) when
+      // the gateway redirect lands on api.bakuroses.az; a host-only delete would
+      // not clear that copy, so expire it on the parent domain as well.
+      const host = (request.headers.get('host') ?? request.nextUrl.hostname).split(':')[0];
+      const cookieDomain = parentDomain(host);
+      if (cookieDomain) {
+        response.headers.append('Set-Cookie', `br_paid=; Path=/; Max-Age=0; Domain=${cookieDomain}`);
+      }
       return response;
     }
 

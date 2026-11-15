@@ -127,12 +127,17 @@ function paymentRedirect(req: Request, res: Response): void {
   const rawLocale = String(req.query.locale ?? '').toLowerCase();
   const lang = (locales as readonly string[]).includes(rawLocale) ? rawLocale : 'az';
 
+  // COOKIE_DOMAIN=bakuroses.az shares the cookie with the storefront when the
+  // gateway lands the customer on api.bakuroses.az; unset → host-only cookie.
+  const cookieDomain = process.env.COOKIE_DOMAIN?.trim() || undefined;
+
   res.cookie('br_paid', '1', {
     httpOnly: true,
     secure: true,
     sameSite: 'lax',
     maxAge: 10 * 60 * 1000,
     path: '/',
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
   });
 
   res.redirect(`${clientUrl}/${lang}/success`);
@@ -140,7 +145,10 @@ function paymentRedirect(req: Request, res: Response): void {
 
 router.get('/callback', paymentRedirect);
 
-router.get('/chewick/callback', (req, res) => {
+// Chewick redirect URL (customer's browser). Registered with Chewick separately
+// from the server-to-server callback (POST /chewick/callback); GET
+// /chewick/callback stays as an alias for anything registered earlier.
+function chewickRedirect(req: Request, res: Response): void {
   // Returning from the Chewick app — nudge the status check so the success page
   // reflects reality without waiting for the next poll tick.
   const ids = extractChewickIds(req.query);
@@ -151,7 +159,10 @@ router.get('/chewick/callback', (req, res) => {
   }
 
   paymentRedirect(req, res);
-});
+}
+
+router.get('/chewick/redirect', chewickRedirect);
+router.get('/chewick/callback', chewickRedirect);
 
 router.get('/:orderId', adminGuard, asyncHandler(async (req, res) => {
   const payment = await prisma.payment.findUnique({
