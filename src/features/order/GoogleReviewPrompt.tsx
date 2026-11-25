@@ -9,7 +9,7 @@ export const GOOGLE_REVIEW_URL = 'https://g.page/r/CRoOC9xGKSaFEAE/review';
 /** How long the success animation plays before the review card appears. */
 const SHOW_AFTER_MS = 4000;
 /** Seconds the card counts down before it opens the review page by itself. */
-const AUTO_OPEN_SECONDS = 8;
+const AUTO_OPEN_SECONDS = 3;
 
 export function GoogleReviewPrompt() {
   const [visible, setVisible] = useState(false);
