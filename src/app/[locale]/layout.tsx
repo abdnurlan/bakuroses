@@ -4,6 +4,7 @@ import { LanguageProvider } from '@/providers/LanguageProvider';
 import { RootDocument } from '@/widgets/RootDocument';
 import { SiteShell } from '@/widgets/SiteShell';
 import { PageTransition } from '@/widgets/PageTransition';
+import { MetaPixel } from '@/widgets/MetaPixel';
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
@@ -22,6 +23,9 @@ export async function generateMetadata({
     metadataBase: new URL('https://bakuroses.az'),
     title: t.meta_title,
     description: t.meta_description,
+    other: {
+      'facebook-domain-verification': 'x10ihhj1vl6a0utq31px9l5sle41kk',
+    },
   };
 }
 
@@ -38,6 +42,7 @@ export default async function LocaleLayout({
 
   return (
     <RootDocument lang={locale}>
+      <MetaPixel />
       <LanguageProvider initialLocale={locale}>
         <SiteShell>
           <PageTransition>{children}</PageTransition>
