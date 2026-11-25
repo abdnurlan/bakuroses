@@ -4,6 +4,7 @@ import Script from 'next/script';
 import Link from 'next/link';
 import { House } from '@phosphor-icons/react';
 import { DeliverySuccessOverlay } from '@/features/order/DeliverySuccessOverlay';
+import { GoogleReviewPrompt } from '@/features/order/GoogleReviewPrompt';
 import { useLocalePath } from '@/hooks/useLocalePath';
 
 export function SuccessView() {
@@ -23,6 +24,7 @@ export function SuccessView() {
       }}
     >
       <DeliverySuccessOverlay />
+      <GoogleReviewPrompt />
 
       <Link
         href={lp('/')}
